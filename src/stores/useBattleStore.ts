@@ -14,6 +14,7 @@ import {
   calculateDamage,
   rollCritical,
 } from "@/data/weaknessChart";
+import { useProgressionStore } from "@/stores/useProgressionStore";
 
 let logIdCounter = 0;
 
@@ -77,10 +78,21 @@ export const useBattleStore = defineStore("battle", () => {
 
     playerMonster.value = toBattleMonster(selected);
 
-    // CPU picks a random different monster
-    const available = MONSTERS.filter((m) => m.id !== monsterId);
-    const randomIndex = Math.floor(Math.random() * available.length);
-    const enemyDef = available[randomIndex];
+    const progressionStore = useProgressionStore();
+
+    // In tournament mode the enemy is always a locked monster so defeating it
+    // unlocks it for the player's roster. Once all are unlocked, fall back to
+    // any monster other than the selected one (free-play).
+    let pool: string[];
+    if (progressionStore.isTournamentComplete) {
+      pool = MONSTERS.filter((m) => m.id !== monsterId).map((m) => m.id);
+    } else {
+      pool = progressionStore.lockedMonsters;
+    }
+
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    const enemyId = pool[randomIndex];
+    const enemyDef = MONSTERS.find((m) => m.id === enemyId);
     if (enemyDef) {
       enemyMonster.value = toBattleMonster(enemyDef);
     }

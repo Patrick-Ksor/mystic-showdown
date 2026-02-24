@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useBattleStore } from "@/stores/useBattleStore";
 import BattleScene from "@/components/battle/BattleScene.vue";
+import arenaImg from "@/assets/sprites/Arena.png";
 
 const router = useRouter();
 const battleStore = useBattleStore();
@@ -18,8 +19,17 @@ onMounted(() => {
 
 <template>
   <div
-    class="h-screen flex flex-col overflow-hidden bg-linear-to-b from-[#0a0a1a] via-[#0f0f2a] to-arena-bg"
+    class="h-screen flex flex-col overflow-hidden relative"
+    :style="{
+      backgroundImage: `url(${arenaImg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    }"
   >
+    <!-- Dark overlay to keep UI readable -->
+    <div class="absolute inset-0 bg-black/40 pointer-events-none" />
+
     <!-- Ambient grid overlay -->
     <div
       class="absolute inset-0 pointer-events-none opacity-5"

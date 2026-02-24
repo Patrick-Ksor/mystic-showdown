@@ -8,10 +8,12 @@ import ElementBadge from "@/components/ui/ElementBadge.vue";
 interface Props {
   monster: MonsterDefinition;
   selected?: boolean;
+  isLocked?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   selected: false,
+  isLocked: false,
 });
 
 const emit = defineEmits<{
@@ -22,7 +24,7 @@ const cardRef = ref<HTMLElement | null>(null);
 let hoverTween: gsap.core.Tween | null = null;
 
 function onMouseEnter() {
-  if (!cardRef.value || props.selected) return;
+  if (!cardRef.value || props.selected || props.isLocked) return;
   hoverTween = gsap.to(cardRef.value, {
     scale: 1.05,
     duration: 0.25,
@@ -31,7 +33,7 @@ function onMouseEnter() {
 }
 
 function onMouseLeave() {
-  if (!cardRef.value || props.selected) return;
+  if (!cardRef.value || props.selected || props.isLocked) return;
   hoverTween?.kill();
   gsap.to(cardRef.value, {
     scale: 1,
@@ -55,23 +57,28 @@ onBeforeUnmount(() => {
   <div
     ref="cardRef"
     :class="[
-      'relative rounded-xl border-2 p-4 cursor-pointer transition-colors duration-200',
+      'relative rounded-xl border-2 p-4 transition-colors duration-200',
       'bg-linear-to-b from-white/5 to-white/2 backdrop-blur-sm',
-      props.selected
-        ? 'border-opacity-100'
-        : 'border-white/10 hover:border-opacity-60',
+      props.isLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+      !props.isLocked && !props.selected
+        ? 'border-white/10 hover:border-opacity-60'
+        : '',
+      props.selected && !props.isLocked ? 'border-opacity-100' : '',
     ]"
     :style="{
-      borderColor: props.selected
-        ? ELEMENT_COLORS[props.monster.element]
-        : undefined,
-      boxShadow: props.selected
-        ? `0 0 25px ${
-            ELEMENT_COLORS[props.monster.element]
-          }44, inset 0 0 25px ${ELEMENT_COLORS[props.monster.element]}11`
-        : 'none',
+      borderColor:
+        props.selected && !props.isLocked
+          ? ELEMENT_COLORS[props.monster.element]
+          : undefined,
+      boxShadow:
+        props.selected && !props.isLocked
+          ? `0 0 25px ${
+              ELEMENT_COLORS[props.monster.element]
+            }44, inset 0 0 25px ${ELEMENT_COLORS[props.monster.element]}11`
+          : 'none',
+      filter: props.isLocked ? 'grayscale(100%)' : undefined,
     }"
-    @click="emit('select', props.monster.id)"
+    @click="!props.isLocked && emit('select', props.monster.id)"
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
   >
@@ -82,6 +89,17 @@ onBeforeUnmount(() => {
       :style="{ backgroundColor: ELEMENT_COLORS[props.monster.element] }"
     >
       <font-awesome-icon :icon="['fas', 'check']" />
+    </div>
+
+    <!-- Lock overlay -->
+    <div
+      v-if="props.isLocked"
+      class="absolute inset-0 flex flex-col items-center justify-center rounded-xl z-10"
+    >
+      <font-awesome-icon
+        :icon="['fas', 'lock']"
+        class="text-white/60 text-2xl"
+      />
     </div>
 
     <!-- Sprite -->
@@ -98,9 +116,13 @@ onBeforeUnmount(() => {
     <!-- Name -->
     <h3
       class="text-base font-bold mb-1.5 truncate"
-      :style="{ color: ELEMENT_COLORS[props.monster.element] }"
+      :style="{
+        color: props.isLocked
+          ? '#ffffff44'
+          : ELEMENT_COLORS[props.monster.element],
+      }"
     >
-      {{ props.monster.name }}
+      {{ props.isLocked ? "???" : props.monster.name }}
     </h3>
 
     <!-- Element badge -->

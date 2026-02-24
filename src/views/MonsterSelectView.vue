@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import gsap from "gsap";
 import { useBattleStore } from "@/stores/useBattleStore";
+import { useProgressionStore } from "@/stores/useProgressionStore";
 import { MONSTERS } from "@/data/monsters";
 import type { MonsterDefinition } from "@/types";
 import MonsterCard from "@/components/monsters/MonsterCard.vue";
@@ -14,6 +15,7 @@ import { useSoundEffects } from "@/composables/useSoundEffects";
 
 const router = useRouter();
 const battleStore = useBattleStore();
+const progressionStore = useProgressionStore();
 const sfx = useSoundEffects();
 
 const selectedId = ref<string | null>(null);
@@ -25,6 +27,7 @@ const selectedMonster = computed<MonsterDefinition | null>(() => {
 });
 
 function selectMonster(id: string) {
+  if (!progressionStore.isUnlocked(id)) return;
   sfx.playSelect();
   selectedId.value = id;
 }
@@ -73,6 +76,17 @@ onMounted(() => {
         MythicBeast Arena
       </GlowText>
       <p class="text-white/40 text-sm sm:text-base">Choose your champion</p>
+      <p class="text-white/30 text-xs mt-1">
+        <span class="text-purple-400 font-semibold">{{
+          progressionStore.unlockedMonsters.length
+        }}</span>
+        / {{ MONSTERS.length }} unlocked
+        <span
+          v-if="progressionStore.isTournamentComplete"
+          class="text-yellow-400 font-bold ml-2"
+          >— Tournament Complete!</span
+        >
+      </p>
     </div>
 
     <!-- Main Grid + Detail Panel -->
@@ -91,6 +105,7 @@ onMounted(() => {
             <MonsterCard
               :monster="monster"
               :selected="selectedId === monster.id"
+              :is-locked="!progressionStore.isUnlocked(monster.id)"
               @select="selectMonster"
             />
           </div>

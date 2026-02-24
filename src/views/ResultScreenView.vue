@@ -5,6 +5,7 @@ import { storeToRefs } from "pinia";
 import gsap from "gsap";
 import { useBattleStore } from "@/stores/useBattleStore";
 import { useGameStore } from "@/stores/useGameStore";
+import { useProgressionStore } from "@/stores/useProgressionStore";
 import { useConfetti } from "@/composables/useConfetti";
 import { useSoundEffects } from "@/composables/useSoundEffects";
 import GlowText from "@/components/ui/GlowText.vue";
@@ -13,6 +14,7 @@ import BaseButton from "@/components/ui/BaseButton.vue";
 const router = useRouter();
 const battleStore = useBattleStore();
 const gameStore = useGameStore();
+const progressionStore = useProgressionStore();
 const { burst } = useConfetti();
 const sfx = useSoundEffects();
 
@@ -26,6 +28,8 @@ const xpDisplay = ref(0);
 const xpEarned = ref(0);
 const didLevelUp = ref(false);
 const showContent = ref(false);
+const newlyUnlocked = ref<string | null>(null);
+const isTournamentChampion = ref(false);
 
 onMounted(async () => {
   if (!playerMonster.value || !enemyMonster.value) {
@@ -39,6 +43,17 @@ onMounted(async () => {
 
   if (isVictory.value) {
     gameStore.recordWin();
+
+    // Unlock the defeated enemy if it was locked
+    if (
+      enemyMonster.value &&
+      !progressionStore.isUnlocked(enemyMonster.value.id)
+    ) {
+      progressionStore.unlockMonster(enemyMonster.value.id);
+      newlyUnlocked.value = enemyMonster.value.name;
+    }
+
+    isTournamentChampion.value = progressionStore.isTournamentComplete;
   } else {
     gameStore.recordLoss();
   }
@@ -102,6 +117,12 @@ onMounted(async () => {
       sfx.playLevelUp();
       burst(containerRef.value, 50);
     }
+
+    // Champion extra burst
+    if (isTournamentChampion.value) {
+      await delay(800);
+      burst(containerRef.value, 120);
+    }
   } else {
     sfx.playDefeat();
   }
@@ -157,11 +178,51 @@ function rematch() {
           />
           <GlowText
             tag="h1"
-            :color="isVictory ? '#facc15' : '#ef4444'"
+            :color="
+              isTournamentChampion
+                ? '#facc15'
+                : isVictory
+                ? '#facc15'
+                : '#ef4444'
+            "
             class="text-4xl sm:text-5xl"
           >
-            {{ isVictory ? "VICTORY!" : "DEFEATED..." }}
+            {{
+              isTournamentChampion
+                ? "CHAMPION!"
+                : isVictory
+                ? "VICTORY!"
+                : "DEFEATED..."
+            }}
           </GlowText>
+        </div>
+
+        <!-- Tournament Champion Banner -->
+        <div
+          v-if="isTournamentChampion"
+          class="text-center py-4 px-5 rounded-xl border border-yellow-400/40 bg-yellow-500/10"
+        >
+          <p
+            class="text-yellow-300 font-bold text-sm tracking-widest uppercase mb-1"
+          >
+            Tournament Complete
+          </p>
+          <p class="text-white/60 text-xs">
+            All 24 monsters unlocked &mdash; free play is now active!
+          </p>
+        </div>
+
+        <!-- Newly Unlocked Monster Banner -->
+        <div
+          v-else-if="newlyUnlocked"
+          class="text-center py-3 px-5 rounded-xl border border-purple-400/40 bg-purple-500/10"
+        >
+          <p
+            class="text-purple-300 font-bold text-xs tracking-widest uppercase mb-1"
+          >
+            New Monster Unlocked
+          </p>
+          <p class="text-white font-bold text-base">{{ newlyUnlocked }}</p>
         </div>
 
         <!-- Battle Summary -->

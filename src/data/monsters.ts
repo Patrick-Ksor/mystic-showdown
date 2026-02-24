@@ -3,17 +3,17 @@ import voltigonSprite from "../assets/sprites/Voltigon.png";
 import aquaphantSprite from "../assets/sprites/Aquaphant.png";
 import pyroclashSprite from "../assets/sprites/Pyroclash.png";
 import glacifangSprite from "../assets/sprites/Glacifang.png";
+import stormfinSprite from "../assets/sprites/Stormfin.png";
+import coraliThSprite from "../assets/sprites/Coralith.png";
+import cinderbackSprite from "../assets/sprites/Cinderback.png";
+import terravexSprite from "../assets/sprites/Terravex.png";
+import umbraveilSprite from "../assets/sprites/Umbraveil.png";
+import zephyrionSprite from "../assets/sprites/Zephyrion.png";
+import aerovexSprite from "../assets/sprites/Aerovex.png";
 import {
-  STORMFIN_SPRITE,
-  CORALITH_SPRITE,
-  CINDERBACK_SPRITE,
   QUARROX_SPRITE,
   FROSTMAW_SPRITE,
   DUSKTALON_SPRITE,
-  TERRAVEX_SPRITE,
-  UMBRAVEIL_SPRITE,
-  ZEPHYRION_SPRITE,
-  AEROVEX_SPRITE,
   THORNBLOOM_SPRITE,
   SYLVURSA_SPRITE,
   MENTALIS_SPRITE,
@@ -119,7 +119,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 82,
     defense: 48,
     weakness: "earth",
-    spriteUrl: STORMFIN_SPRITE,
+    spriteUrl: stormfinSprite,
     color: "#facc15",
     lore: "An electrified deep-sea predator that crackles with bio-luminescent charge. Its dorsal fin channels lightning.",
     basicMove: {
@@ -148,7 +148,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 62,
     defense: 72,
     weakness: "electric",
-    spriteUrl: CORALITH_SPRITE,
+    spriteUrl: coraliThSprite,
     color: "#0ea5e9",
     lore: "A living reef golem that drifts through deep trenches. Barnacles and coral grow across its stony hide.",
     basicMove: {
@@ -176,7 +176,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 72,
     defense: 62,
     weakness: "water",
-    spriteUrl: CINDERBACK_SPRITE,
+    spriteUrl: cinderbackSprite,
     color: "#ef4444",
     lore: "A smoldering tortoise whose shell is an active caldera. Magma pools in the cracks of its back.",
     basicMove: {
@@ -291,7 +291,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 55,
     defense: 80,
     weakness: "nature",
-    spriteUrl: TERRAVEX_SPRITE,
+    spriteUrl: terravexSprite,
     color: "#c48a2a",
     lore: "An ancient golem of compacted stone and crystal. Legends say it has stood guard for millennia.",
     basicMove: {
@@ -347,7 +347,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 80,
     defense: 55,
     weakness: "light",
-    spriteUrl: UMBRAVEIL_SPRITE,
+    spriteUrl: umbraveilSprite,
     color: "#a855f7",
     lore: "A spectral wraith that drifts between dimensions. It feeds on fear and casts no reflection.",
     basicMove: {
@@ -378,7 +378,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 72,
     defense: 58,
     weakness: "ice",
-    spriteUrl: ZEPHYRION_SPRITE,
+    spriteUrl: zephyrionSprite,
     color: "#6ee7b7",
     lore: "A sinuous aerial serpent born from mountain gales. It slithers through the sky on invisible currents.",
     basicMove: {
@@ -407,7 +407,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 82,
     defense: 48,
     weakness: "ice",
-    spriteUrl: AEROVEX_SPRITE,
+    spriteUrl: aerovexSprite,
     color: "#34d399",
     lore: "A storm hawk that dives at supersonic speed. Thunder follows in its wake.",
     basicMove: {
