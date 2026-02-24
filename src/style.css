@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --color-arena-bg: #0a0a14;
+  --color-arena-surface: #0f0f1a;
+  --color-neon-fire: #ff4d00;
+  --color-neon-water: #00bfff;
+  --color-neon-electric: #ffe44d;
+  --color-neon-earth: #c48a2a;
+  --color-neon-ice: #7fdbff;
+  --color-neon-shadow: #a855f7;
+  --color-hp-green: #00ff88;
+  --color-hp-yellow: #ffdd00;
+  --color-hp-red: #ff2244;
+}
+
+/* ─── Global Defaults ─────────────────────────────────────── */
+
+body {
+  background-color: #0a0a14;
+  color: white;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Scrollbar Styling ───────────────────────────────────── */
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ─── Selection Color ─────────────────────────────────────── */
+
+::selection {
+  background: rgba(168, 85, 247, 0.3);
+  color: white;
+}
