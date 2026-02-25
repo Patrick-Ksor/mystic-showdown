@@ -9,6 +9,7 @@ import type {
   Move,
   MonsterDefinition,
   StatusCondition,
+  DifficultyTier,
 } from "@/types";
 import { MONSTERS } from "@/data/monsters";
 import {
@@ -18,6 +19,7 @@ import {
 } from "@/data/weaknessChart";
 import { useProgressionStore } from "@/stores/useProgressionStore";
 import { useMonsterLevelStore } from "@/stores/useMonsterLevelStore";
+import { useGameStore } from "@/stores/useGameStore";
 
 let logIdCounter = 0;
 
@@ -184,9 +186,35 @@ export const useBattleStore = defineStore("battle", () => {
     playerMonster.value = toBattleMonster(selected);
     const playerLevel = playerMonster.value.level;
 
+    const gameStore = useGameStore();
+    const levelOffsets: Record<DifficultyTier, number> = {
+      easy: -2,
+      normal: 0,
+      hard: 2,
+      nightmare: 4,
+    };
+    const statMults: Record<DifficultyTier, number> = {
+      easy: 0.85,
+      normal: 1,
+      hard: 1.15,
+      nightmare: 1.3,
+    };
+    const adjustedLevel = Math.max(
+      1,
+      playerLevel + levelOffsets[gameStore.difficulty],
+    );
+    const statMult = statMults[gameStore.difficulty];
+
+    function applyDifficultyStats(monster: BattleMonster) {
+      if (statMult === 1) return;
+      monster.attack = Math.round(monster.attack * statMult);
+      monster.defense = Math.round(monster.defense * statMult);
+    }
+
     // Gauntlet mode: enemy is predetermined
     if (presetEnemy) {
-      enemyMonster.value = toBattleMonster(presetEnemy, playerLevel);
+      enemyMonster.value = toBattleMonster(presetEnemy, adjustedLevel);
+      applyDifficultyStats(enemyMonster.value);
       return;
     }
 
@@ -206,7 +234,8 @@ export const useBattleStore = defineStore("battle", () => {
     const enemyId = pool[randomIndex];
     const enemyDef = MONSTERS.find((m) => m.id === enemyId);
     if (enemyDef) {
-      enemyMonster.value = toBattleMonster(enemyDef, playerLevel);
+      enemyMonster.value = toBattleMonster(enemyDef, adjustedLevel);
+      applyDifficultyStats(enemyMonster.value);
     }
   }
 
@@ -390,18 +419,44 @@ export const useBattleStore = defineStore("battle", () => {
       return null;
     }
 
-    // CPU AI: 40% basic move, 40% random special, 20% guard
+    // CPU AI — thresholds are [basicMax, attackMax]; remainder = guard
+    const aiThresholds: Record<DifficultyTier, [number, number]> = {
+      easy: [0.6, 0.8],
+      normal: [0.4, 0.8],
+      hard: [0.2, 0.85],
+      nightmare: [0.1, 0.9],
+    };
+    const gameStore = useGameStore();
+    const [basicMax, attackMax] = aiThresholds[gameStore.difficulty];
     const roll = Math.random();
     let result: DamageResult | null = null;
 
-    if (roll < 0.8) {
+    if (roll < attackMax) {
       const moves = enemyMonster.value.moves;
       let selectedMove: Move;
-      if (roll < 0.4 || moves.length <= 1) {
-        // Use basic move (index 0)
+      if (roll < basicMax || moves.length <= 1) {
+        // Basic move
         selectedMove = moves[0];
+      } else if (
+        (gameStore.difficulty === "hard" ||
+          gameStore.difficulty === "nightmare") &&
+        playerMonster.value
+      ) {
+        // Prefer a super-effective move when available
+        const seMove = moves
+          .slice(1)
+          .find(
+            (m) =>
+              getEffectivenessMultiplier(
+                m.element,
+                playerMonster.value!.weaknesses,
+                playerMonster.value!.element,
+              ).effectiveness === "super",
+          );
+        selectedMove =
+          seMove ?? moves[1 + Math.floor(Math.random() * (moves.length - 1))];
       } else {
-        // Pick a random special move (indices 1+)
+        // Random special move
         const specialIndex = 1 + Math.floor(Math.random() * (moves.length - 1));
         selectedMove = moves[specialIndex];
       }

@@ -6,8 +6,9 @@ import { useBattleStore } from "@/stores/useBattleStore";
 import { useProgressionStore } from "@/stores/useProgressionStore";
 import { useGauntletStore } from "@/stores/useGauntletStore";
 import { useMonsterLevelStore } from "@/stores/useMonsterLevelStore";
+import { useGameStore } from "@/stores/useGameStore";
 import { MONSTERS } from "@/data/monsters";
-import type { MonsterDefinition } from "@/types";
+import type { MonsterDefinition, DifficultyTier } from "@/types";
 import MonsterCard from "@/components/monsters/MonsterCard.vue";
 import MonsterStats from "@/components/monsters/MonsterStats.vue";
 import GlowText from "@/components/ui/GlowText.vue";
@@ -20,7 +21,40 @@ const battleStore = useBattleStore();
 const progressionStore = useProgressionStore();
 const gauntletStore = useGauntletStore();
 const monsterLevelStore = useMonsterLevelStore();
+const gameStore = useGameStore();
 const sfx = useSoundEffects();
+
+const difficultyTiers: {
+  id: DifficultyTier;
+  label: string;
+  color: string;
+  desc: string;
+}[] = [
+  {
+    id: "easy",
+    label: "Easy",
+    color: "#22c55e",
+    desc: "Weaker enemies, less XP",
+  },
+  {
+    id: "normal",
+    label: "Normal",
+    color: "#00bfff",
+    desc: "Balanced challenge",
+  },
+  {
+    id: "hard",
+    label: "Hard",
+    color: "#f97316",
+    desc: "Stronger enemies, smarter AI",
+  },
+  {
+    id: "nightmare",
+    label: "Nightmare",
+    color: "#a855f7",
+    desc: "Maximum difficulty, +50% XP",
+  },
+];
 
 const selectedId = ref<string | null>(null);
 const gridRef = ref<HTMLElement | null>(null);
@@ -153,6 +187,44 @@ onMounted(() => {
           />
 
           <div class="mt-6 flex flex-col gap-2">
+            <!-- Difficulty Selector -->
+            <div class="mb-1">
+              <p
+                class="text-[10px] text-white/40 uppercase tracking-wider mb-2 font-semibold"
+              >
+                Difficulty
+              </p>
+              <div class="grid grid-cols-4 gap-1">
+                <button
+                  v-for="tier in difficultyTiers"
+                  :key="tier.id"
+                  :title="tier.desc"
+                  class="rounded-lg border-2 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95"
+                  :style="{
+                    borderColor:
+                      gameStore.difficulty === tier.id
+                        ? tier.color
+                        : 'rgba(255,255,255,0.08)',
+                    color:
+                      gameStore.difficulty === tier.id
+                        ? tier.color
+                        : 'rgba(255,255,255,0.35)',
+                    backgroundColor:
+                      gameStore.difficulty === tier.id
+                        ? tier.color + '18'
+                        : 'transparent',
+                    boxShadow:
+                      gameStore.difficulty === tier.id
+                        ? `0 0 10px ${tier.color}44`
+                        : 'none',
+                  }"
+                  @click="gameStore.setDifficulty(tier.id)"
+                >
+                  {{ tier.label }}
+                </button>
+              </div>
+            </div>
+
             <BaseButton
               :variant="selectedMonster.element"
               size="lg"

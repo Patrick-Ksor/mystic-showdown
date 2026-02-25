@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import type { BattleMonster } from "@/types";
 import { animateIdle } from "@/composables/useBattleAnimations";
 
@@ -12,6 +12,18 @@ const props = defineProps<Props>();
 
 const spriteRef = ref<HTMLElement | null>(null);
 let idleTween: gsap.core.Tween | null = null;
+
+const statusMeta = computed(() => {
+  const s = props.monster.statusEffect;
+  if (!s) return null;
+  const map: Record<string, { icon: string; color: string; cls: string }> = {
+    poison: { icon: "skull", color: "#86efac", cls: "animate-pulse" },
+    stun: { icon: "bolt", color: "#fde047", cls: "animate-bounce" },
+    sleep: { icon: "moon", color: "#a5b4fc", cls: "status-float" },
+  };
+  const meta = map[s.type];
+  return meta ? { ...meta, turnsLeft: s.turnsLeft } : null;
+});
 
 onMounted(() => {
   if (spriteRef.value) {
@@ -50,5 +62,29 @@ defineExpose({
         transform: props.side === 'enemy' ? 'scaleX(-1)' : undefined,
       }"
     />
+
+    <!-- Status condition overlay -->
+    <div
+      v-if="statusMeta"
+      class="absolute top-1 right-1 z-10 pointer-events-none"
+    >
+      <span
+        :class="[
+          'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold border border-white/20',
+          statusMeta.cls,
+        ]"
+        :style="{
+          color: statusMeta.color,
+          backgroundColor: statusMeta.color + '28',
+          boxShadow: `0 0 8px ${statusMeta.color}44`,
+        }"
+      >
+        <font-awesome-icon
+          :icon="['fas', statusMeta.icon]"
+          class="text-[10px]"
+        />
+        {{ statusMeta.turnsLeft }}
+      </span>
+    </div>
   </div>
 </template>

@@ -168,6 +168,9 @@ export interface DamageResult {
 // ─── Game Mode ───────────────────────────────────────────────
 export type GameMode = "normal" | "gauntlet";
 
+// ─── Difficulty ──────────────────────────────────────────────
+export type DifficultyTier = "easy" | "normal" | "hard" | "nightmare";
+
 // ─── Monster Progress (per-monster leveling) ─────────────────
 export interface MonsterProgress {
   id: string;

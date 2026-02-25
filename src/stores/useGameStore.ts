@@ -1,11 +1,19 @@
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { defineStore } from "pinia";
+import type { DifficultyTier } from "@/types";
+
+const DIFFICULTY_KEY = "game_difficulty";
 
 export const useGameStore = defineStore("game", () => {
   const totalXP = ref(0);
   const playerLevel = ref(1);
   const wins = ref(0);
   const losses = ref(0);
+  const difficulty = ref<DifficultyTier>(
+    (localStorage.getItem(DIFFICULTY_KEY) as DifficultyTier) ?? "normal",
+  );
+
+  watch(difficulty, (val) => localStorage.setItem(DIFFICULTY_KEY, val));
 
   const XP_PER_LEVEL = 100;
 
@@ -25,11 +33,22 @@ export const useGameStore = defineStore("game", () => {
     losses.value++;
   }
 
+  function setDifficulty(tier: DifficultyTier) {
+    difficulty.value = tier;
+  }
+
   function calculateXPReward(enemyLevel: number, won: boolean): number {
     const base = 50;
     const levelBonus = enemyLevel * 10;
     const victoryBonus = won ? 30 : 0;
-    return base + levelBonus + victoryBonus;
+    const raw = base + levelBonus + victoryBonus;
+    const multipliers: Record<DifficultyTier, number> = {
+      easy: 0.75,
+      normal: 1,
+      hard: 1.25,
+      nightmare: 1.5,
+    };
+    return Math.round(raw * multipliers[difficulty.value]);
   }
 
   function $reset() {
@@ -44,10 +63,12 @@ export const useGameStore = defineStore("game", () => {
     playerLevel,
     wins,
     losses,
+    difficulty,
     XP_PER_LEVEL,
     awardXP,
     recordWin,
     recordLoss,
+    setDifficulty,
     calculateXPReward,
     $reset,
   };
