@@ -4,6 +4,8 @@ import { useRouter } from "vue-router";
 import gsap from "gsap";
 import { useBattleStore } from "@/stores/useBattleStore";
 import { useProgressionStore } from "@/stores/useProgressionStore";
+import { useGauntletStore } from "@/stores/useGauntletStore";
+import { useMonsterLevelStore } from "@/stores/useMonsterLevelStore";
 import { MONSTERS } from "@/data/monsters";
 import type { MonsterDefinition } from "@/types";
 import MonsterCard from "@/components/monsters/MonsterCard.vue";
@@ -16,6 +18,8 @@ import { useSoundEffects } from "@/composables/useSoundEffects";
 const router = useRouter();
 const battleStore = useBattleStore();
 const progressionStore = useProgressionStore();
+const gauntletStore = useGauntletStore();
+const monsterLevelStore = useMonsterLevelStore();
 const sfx = useSoundEffects();
 
 const selectedId = ref<string | null>(null);
@@ -37,6 +41,16 @@ function enterArena() {
   sfx.playConfirm();
   battleStore.selectMonster(selectedId.value);
   router.push("/battle");
+}
+
+function enterGauntlet() {
+  if (!selectedId.value) return;
+  if (!gauntletStore.canStartGauntlet) return;
+  sfx.playConfirm();
+  gauntletStore.startGauntlet(selectedId.value);
+  const firstOpponent = gauntletStore.currentOpponent;
+  battleStore.selectMonster(selectedId.value, firstOpponent ?? undefined);
+  router.push("/gauntlet");
 }
 
 onMounted(() => {
@@ -106,6 +120,7 @@ onMounted(() => {
               :monster="monster"
               :selected="selectedId === monster.id"
               :is-locked="!progressionStore.isUnlocked(monster.id)"
+              :level="monsterLevelStore.getLevel(monster.id)"
               @select="selectMonster"
             />
           </div>
@@ -122,9 +137,22 @@ onMounted(() => {
         }"
       >
         <template v-if="selectedMonster">
-          <MonsterStats :monster="selectedMonster" />
+          <MonsterStats
+            :monster="selectedMonster"
+            :level="monsterLevelStore.getLevel(selectedMonster.id)"
+            :xp="monsterLevelStore.getXP(selectedMonster.id)"
+            :xp-to-next="
+              monsterLevelStore.getXPToNextLevel(
+                monsterLevelStore.getLevel(selectedMonster.id)
+              )
+            "
+            :max-level="monsterLevelStore.maxLevel"
+            :equipped-move-names="
+              monsterLevelStore.getEquippedMoveNames(selectedMonster.id)
+            "
+          />
 
-          <div class="mt-6">
+          <div class="mt-6 flex flex-col gap-2">
             <BaseButton
               :variant="selectedMonster.element"
               size="lg"
@@ -132,7 +160,22 @@ onMounted(() => {
               class="w-full"
               @click="enterArena"
             >
-              Enter Arena
+              Normal Battle
+            </BaseButton>
+            <BaseButton
+              variant="primary"
+              size="lg"
+              icon="swords"
+              class="w-full"
+              :disabled="!gauntletStore.canStartGauntlet"
+              :title="
+                !gauntletStore.canStartGauntlet
+                  ? 'Need 3+ locked monsters to start gauntlet'
+                  : undefined
+              "
+              @click="enterGauntlet"
+            >
+              ⚔ Gauntlet (3 Stages)
             </BaseButton>
           </div>
         </template>

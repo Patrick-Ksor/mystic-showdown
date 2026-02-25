@@ -14,6 +14,11 @@ const router = createRouter({
       component: () => import("@/views/BattleArenaView.vue"),
     },
     {
+      path: "/gauntlet",
+      name: "GauntletArena",
+      component: () => import("@/views/GauntletView.vue"),
+    },
+    {
       path: "/result",
       name: "ResultScreen",
       component: () => import("@/views/ResultScreenView.vue"),

@@ -45,8 +45,10 @@ export const ELEMENT_COLORS: Record<ElementType, string> = {
 };
 
 export const ACTION_ICONS: Record<ActionType, string> = {
-  strike: "hand-fist",
-  special: "wand-sparkles",
+  move0: "hand-fist",
+  move1: "wand-sparkles",
+  move2: "wand-sparkles",
+  move3: "wand-sparkles",
   guard: "shield-halved",
   run: "person-running",
 };
@@ -61,6 +63,11 @@ export interface Move {
   description: string;
 }
 
+export interface LearnableMove {
+  level: number;
+  move: Move;
+}
+
 // ─── Monster Definitions ─────────────────────────────────────
 export interface MonsterDefinition {
   id: string;
@@ -71,7 +78,8 @@ export interface MonsterDefinition {
   defense: number;
   specialMove: Move;
   basicMove: Move;
-  weakness: ElementType;
+  weaknesses: ElementType[];
+  learnset: LearnableMove[];
   spriteUrl: string;
   color: string;
   lore: string;
@@ -84,6 +92,7 @@ export interface BattleMonster extends MonsterDefinition {
   level: number;
   xp: number;
   isGuarding: boolean;
+  moves: Move[];
 }
 
 // ─── Battle Phases ───────────────────────────────────────────
@@ -97,7 +106,13 @@ export type BattlePhase =
   | "defeat";
 
 // ─── Action Types ────────────────────────────────────────────
-export type ActionType = "strike" | "special" | "guard" | "run";
+export type ActionType =
+  | "move0"
+  | "move1"
+  | "move2"
+  | "move3"
+  | "guard"
+  | "run";
 
 // ─── Battle Log ──────────────────────────────────────────────
 export type LogEntryType =
@@ -121,4 +136,26 @@ export interface DamageResult {
   isCritical: boolean;
   effectiveness: "super" | "resisted" | "neutral";
   message: string;
+}
+
+// ─── Game Mode ───────────────────────────────────────────────
+export type GameMode = "normal" | "gauntlet";
+
+// ─── Monster Progress (per-monster leveling) ─────────────────
+export interface MonsterProgress {
+  id: string;
+  level: number;
+  xp: number;
+  equippedMoveNames?: string[];
+}
+
+// ─── Gauntlet State ──────────────────────────────────────────
+export interface GauntletState {
+  currentRound: number;
+  totalRounds: number;
+  opponentIds: string[];
+  defeatedIds: string[];
+  playerMonsterId: string | null;
+  isComplete: boolean;
+  isFailed: boolean;
 }

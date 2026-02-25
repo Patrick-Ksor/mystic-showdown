@@ -19,6 +19,16 @@ import HealthBar from "@/components/battle/HealthBar.vue";
 import ActionMenu from "@/components/battle/ActionMenu.vue";
 import BattleLog from "@/components/battle/BattleLog.vue";
 
+const emit = defineEmits<{
+  victory: [];
+  defeat: [];
+}>();
+
+interface Props {
+  disableRun?: boolean;
+}
+const props = withDefaults(defineProps<Props>(), { disableRun: false });
+
 const router = useRouter();
 const battleStore = useBattleStore();
 const sfx = useSoundEffects();
@@ -113,11 +123,13 @@ async function handlePlayerAction(action: ActionType) {
     }
     await gsapDelay(0.5);
   } else {
-    // Attack action (strike or special)
-    const move =
-      action === "strike"
-        ? playerMonster.value.basicMove
-        : playerMonster.value.specialMove;
+    // Attack action (move0-move3)
+    const moveIndex = parseInt(action.replace("move", ""));
+    const move = playerMonster.value.moves[moveIndex];
+    if (!move) {
+      isProcessing.value = false;
+      return;
+    }
 
     // Play attack launch + element accent on enemy
     if (enemyEl) {
@@ -152,7 +164,7 @@ async function handlePlayerAction(action: ActionType) {
     sfx.playVictory();
     await showBannerAnimation("VICTORY!");
     await gsapDelay(0.5);
-    router.push("/result");
+    emit("victory");
     isProcessing.value = false;
     return;
   }
@@ -203,7 +215,7 @@ async function executeEnemyTurn() {
     sfx.playDefeat();
     await showBannerAnimation("DEFEATED...");
     await gsapDelay(0.5);
-    router.push("/result");
+    emit("defeat");
     return;
   }
 
@@ -297,6 +309,7 @@ onBeforeUnmount(() => {
         v-if="playerMonster"
         :monster="playerMonster"
         :disabled="!isPlayerTurn || isProcessing"
+        :disable-run="props.disableRun"
         @action="handlePlayerAction"
       />
     </div>

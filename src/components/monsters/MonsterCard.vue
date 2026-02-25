@@ -9,11 +9,13 @@ interface Props {
   monster: MonsterDefinition;
   selected?: boolean;
   isLocked?: boolean;
+  level?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   selected: false,
   isLocked: false,
+  level: 1,
 });
 
 const emit = defineEmits<{
@@ -82,6 +84,15 @@ onBeforeUnmount(() => {
     @mouseenter="onMouseEnter"
     @mouseleave="onMouseLeave"
   >
+    <!-- Level badge -->
+    <div
+      v-if="!props.isLocked && props.level > 0"
+      class="absolute top-2 left-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-black/60 border border-white/10 text-[10px] font-bold text-yellow-400 z-10"
+    >
+      <font-awesome-icon :icon="['fas', 'star']" class="text-[8px]" />
+      Lv.{{ props.level }}
+    </div>
+
     <!-- Selected indicator -->
     <div
       v-if="props.selected"
@@ -132,21 +143,27 @@ onBeforeUnmount(() => {
     <div class="grid grid-cols-3 gap-1 text-[10px] text-white/60">
       <div class="flex items-center gap-1">
         <font-awesome-icon :icon="['fas', 'heart']" class="text-red-400" />
-        <span>{{ props.monster.baseHP }}</span>
+        <span>{{
+          Math.floor(props.monster.baseHP * (1 + 0.02 * (props.level - 1)))
+        }}</span>
       </div>
       <div class="flex items-center gap-1">
         <font-awesome-icon
           :icon="['fas', 'hand-fist']"
           class="text-orange-400"
         />
-        <span>{{ props.monster.attack }}</span>
+        <span>{{
+          Math.floor(props.monster.attack * (1 + 0.02 * (props.level - 1)))
+        }}</span>
       </div>
       <div class="flex items-center gap-1">
         <font-awesome-icon
           :icon="['fas', 'shield-halved']"
           class="text-blue-400"
         />
-        <span>{{ props.monster.defense }}</span>
+        <span>{{
+          Math.floor(props.monster.defense * (1 + 0.02 * (props.level - 1)))
+        }}</span>
       </div>
     </div>
   </div>

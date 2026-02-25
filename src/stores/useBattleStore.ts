@@ -7,6 +7,7 @@ import type {
   ActionType,
   DamageResult,
   Move,
+  MonsterDefinition,
 } from "@/types";
 import { MONSTERS } from "@/data/monsters";
 import {
@@ -15,17 +16,29 @@ import {
   rollCritical,
 } from "@/data/weaknessChart";
 import { useProgressionStore } from "@/stores/useProgressionStore";
+import { useMonsterLevelStore } from "@/stores/useMonsterLevelStore";
 
 let logIdCounter = 0;
 
-function toBattleMonster(def: (typeof MONSTERS)[number]): BattleMonster {
+function toBattleMonster(
+  def: (typeof MONSTERS)[number],
+  levelOverride?: number,
+): BattleMonster {
+  const monsterLevelStore = useMonsterLevelStore();
+  const isEnemy = levelOverride !== undefined;
+  const level = levelOverride ?? monsterLevelStore.getLevel(def.id);
+  const scaled = monsterLevelStore.getScaledStats(def, level);
+  const moves = monsterLevelStore.buildMovesArray(def, level, isEnemy);
   return {
     ...def,
-    currentHP: def.baseHP,
-    maxHP: def.baseHP,
-    level: 5,
+    currentHP: scaled.hp,
+    maxHP: scaled.hp,
+    attack: scaled.attack,
+    defense: scaled.defense,
+    level,
     xp: 0,
     isGuarding: false,
+    moves,
   };
 }
 
@@ -72,11 +85,18 @@ export const useBattleStore = defineStore("battle", () => {
     }
   }
 
-  function selectMonster(monsterId: string) {
+  function selectMonster(monsterId: string, presetEnemy?: MonsterDefinition) {
     const selected = MONSTERS.find((m) => m.id === monsterId);
     if (!selected) return;
 
     playerMonster.value = toBattleMonster(selected);
+    const playerLevel = playerMonster.value.level;
+
+    // Gauntlet mode: enemy is predetermined
+    if (presetEnemy) {
+      enemyMonster.value = toBattleMonster(presetEnemy, playerLevel);
+      return;
+    }
 
     const progressionStore = useProgressionStore();
 
@@ -94,7 +114,7 @@ export const useBattleStore = defineStore("battle", () => {
     const enemyId = pool[randomIndex];
     const enemyDef = MONSTERS.find((m) => m.id === enemyId);
     if (enemyDef) {
-      enemyMonster.value = toBattleMonster(enemyDef);
+      enemyMonster.value = toBattleMonster(enemyDef, playerLevel);
     }
   }
 
@@ -143,7 +163,7 @@ export const useBattleStore = defineStore("battle", () => {
     const isCritical = rollCritical();
     const { multiplier, effectiveness } = getEffectivenessMultiplier(
       move.element,
-      defender.weakness,
+      defender.weaknesses,
       defender.element,
     );
 
@@ -197,23 +217,22 @@ export const useBattleStore = defineStore("battle", () => {
     let result: DamageResult | null = null;
 
     switch (action) {
-      case "strike":
-        result = performAttack(
-          playerMonster.value,
-          enemyMonster.value,
-          playerMonster.value.basicMove,
-          "enemy",
-        );
+      case "move0":
+      case "move1":
+      case "move2":
+      case "move3": {
+        const moveIndex = parseInt(action.replace("move", ""));
+        const move = playerMonster.value.moves[moveIndex];
+        if (move) {
+          result = performAttack(
+            playerMonster.value,
+            enemyMonster.value,
+            move,
+            "enemy",
+          );
+        }
         break;
-
-      case "special":
-        result = performAttack(
-          playerMonster.value,
-          enemyMonster.value,
-          playerMonster.value.specialMove,
-          "enemy",
-        );
-        break;
+      }
 
       case "guard":
         playerMonster.value.isGuarding = true;
@@ -269,22 +288,25 @@ export const useBattleStore = defineStore("battle", () => {
     phase.value = "animating";
     isAnimating.value = true;
 
-    // CPU AI: 50% strike, 30% special, 20% guard
+    // CPU AI: 40% basic move, 40% random special, 20% guard
     const roll = Math.random();
     let result: DamageResult | null = null;
 
-    if (roll < 0.5) {
+    if (roll < 0.8) {
+      const moves = enemyMonster.value.moves;
+      let selectedMove: Move;
+      if (roll < 0.4 || moves.length <= 1) {
+        // Use basic move (index 0)
+        selectedMove = moves[0];
+      } else {
+        // Pick a random special move (indices 1+)
+        const specialIndex = 1 + Math.floor(Math.random() * (moves.length - 1));
+        selectedMove = moves[specialIndex];
+      }
       result = performAttack(
         enemyMonster.value,
         playerMonster.value,
-        enemyMonster.value.basicMove,
-        "player",
-      );
-    } else if (roll < 0.8) {
-      result = performAttack(
-        enemyMonster.value,
-        playerMonster.value,
-        enemyMonster.value.specialMove,
+        selectedMove,
         "player",
       );
     } else {

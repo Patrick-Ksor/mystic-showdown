@@ -15,6 +15,14 @@ onMounted(() => {
     router.push("/");
   }
 });
+
+function onVictory() {
+  router.push("/result");
+}
+
+function onDefeat() {
+  router.push("/result");
+}
 </script>
 
 <template>
@@ -43,6 +51,11 @@ onMounted(() => {
       "
     />
 
-    <BattleScene v-if="playerMonster" class="relative z-10 flex-1" />
+    <BattleScene
+      v-if="playerMonster"
+      class="relative z-10 flex-1"
+      @victory="onVictory"
+      @defeat="onDefeat"
+    />
   </div>
 </template>
