@@ -381,7 +381,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Bottom Section: Battle Log + Action Menu -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 px-4 pb-4">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 px-4 pb-4 h-52 shrink-0">
       <BattleLog :entries="battleLog" />
       <ActionMenu
         v-if="playerMonster"

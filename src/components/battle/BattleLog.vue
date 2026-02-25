@@ -88,7 +88,7 @@ onMounted(() => {
     <!-- Entries -->
     <div
       ref="logRef"
-      class="p-3 space-y-1.5 overflow-y-auto max-h-45 sm:max-h-55 scrollbar-thin"
+      class="p-3 space-y-1.5 overflow-y-auto h-32 scrollbar-thin"
     >
       <div
         v-for="entry in visibleEntries"
