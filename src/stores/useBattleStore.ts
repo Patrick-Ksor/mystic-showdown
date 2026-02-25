@@ -35,6 +35,7 @@ function toBattleMonster(
     maxHP: scaled.hp,
     attack: scaled.attack,
     defense: scaled.defense,
+    speed: scaled.speed,
     level,
     xp: 0,
     isGuarding: false,

@@ -11,7 +11,8 @@ export type ElementType =
   | "psychic"
   | "metal"
   | "light"
-  | "toxic";
+  | "toxic"
+  | "void";
 
 // ─── Icon Mappings ───────────────────────────────────────────
 export const ELEMENT_ICONS: Record<ElementType, string> = {
@@ -27,6 +28,7 @@ export const ELEMENT_ICONS: Record<ElementType, string> = {
   metal: "gears",
   light: "sun",
   toxic: "biohazard",
+  void: "circle-notch",
 };
 
 export const ELEMENT_COLORS: Record<ElementType, string> = {
@@ -42,6 +44,7 @@ export const ELEMENT_COLORS: Record<ElementType, string> = {
   metal: "#94a3b8",
   light: "#fbbf24",
   toxic: "#84cc16",
+  void: "#7c3aed",
 };
 
 export const ACTION_ICONS: Record<ActionType, string> = {
@@ -76,6 +79,7 @@ export interface MonsterDefinition {
   baseHP: number;
   attack: number;
   defense: number;
+  speed: number;
   specialMove: Move;
   basicMove: Move;
   weaknesses: ElementType[];

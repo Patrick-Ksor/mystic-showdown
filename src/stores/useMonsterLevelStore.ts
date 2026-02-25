@@ -63,12 +63,13 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
   function getScaledStats(
     def: MonsterDefinition,
     level: number,
-  ): { hp: number; attack: number; defense: number } {
+  ): { hp: number; attack: number; defense: number; speed: number } {
     const multiplier = 1 + STAT_SCALE_PER_LEVEL * (level - 1);
     return {
       hp: Math.floor(def.baseHP * multiplier),
       attack: Math.floor(def.attack * multiplier),
       defense: Math.floor(def.defense * multiplier),
+      speed: Math.floor(def.speed * multiplier),
     };
   }
 

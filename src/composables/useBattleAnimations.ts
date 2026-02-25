@@ -484,6 +484,61 @@ async function toxicAttack(targetEl: HTMLElement): Promise<void> {
   return gsapPromise(tl);
 }
 
+async function voidAttack(targetEl: HTMLElement): Promise<void> {
+  const tl = gsap.timeline();
+
+  // Dark implosion — scale down then burst
+  tl.to(targetEl, {
+    scale: 0.7,
+    filter: "brightness(0.2) saturate(3) hue-rotate(270deg)",
+    duration: 0.3,
+    ease: "power3.in",
+  });
+  tl.to(targetEl, {
+    scale: 1.2,
+    filter: "brightness(2) saturate(2) hue-rotate(270deg)",
+    duration: 0.15,
+  });
+  tl.to(targetEl, { scale: 1, filter: "none", duration: 0.4 });
+
+  // Void particles collapsing inward
+  const parent = targetEl.parentElement;
+  if (parent) {
+    for (let i = 0; i < 16; i++) {
+      const p = document.createElement("div");
+      const size = 4 + Math.random() * 8;
+      const angle = (i / 16) * Math.PI * 2;
+      const dist = 60 + Math.random() * 40;
+      const startX = Math.cos(angle) * dist;
+      const startY = Math.sin(angle) * dist;
+      p.style.cssText = `
+        position: absolute; width: ${size}px; height: ${size}px;
+        border-radius: 50%;
+        background: ${Math.random() > 0.5 ? "#7c3aed" : "#a855f7"};
+        top: 50%; left: 50%; pointer-events: none; z-index: 50;
+        box-shadow: 0 0 10px #7c3aed, 0 0 20px #1a1a2e;
+        transform: translate(${startX}px, ${startY}px);
+        opacity: 0.9;
+      `;
+      parent.style.position = "relative";
+      parent.appendChild(p);
+
+      gsap.to(p, {
+        x: 0,
+        y: 0,
+        opacity: 0,
+        scale: 0,
+        duration: 0.4 + Math.random() * 0.3,
+        delay: Math.random() * 0.1,
+        ease: "power3.in",
+        onComplete: () => p.remove(),
+      });
+    }
+  }
+
+  return gsapPromise(tl);
+}
+
 // ─── Public API ──────────────────────────────────────────────
 
 const attackAnimations: Record<
@@ -502,6 +557,7 @@ const attackAnimations: Record<
   metal: metalAttack,
   light: lightAttack,
   toxic: toxicAttack,
+  void: voidAttack,
 };
 
 export async function animateAttack(

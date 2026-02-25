@@ -25,12 +25,15 @@ const monsterLevelStore = useMonsterLevelStore();
 const { burst } = useConfetti();
 const sfx = useSoundEffects();
 
-const { phase, playerMonster, enemyMonster, turnCount } =
-  storeToRefs(battleStore);
+const { playerMonster, enemyMonster, turnCount } = storeToRefs(battleStore);
 
-const isVictory = computed(() => phase.value === "victory");
-const isGauntletComplete = computed(() => gauntletStore.isComplete);
-const isGauntletFailed = computed(() => gauntletStore.isFailed);
+// Snapshot outcome at mount time — do NOT use reactive computeds here.
+// If we used computed(() => phase.value === "victory"), resetting the store
+// before navigation completes would flip isVictory to false, causing a
+// one-frame flash of the defeat screen even after a win.
+const isVictory = ref(battleStore.phase === "victory");
+const isGauntletComplete = ref(gauntletStore.isComplete);
+const isGauntletFailed = ref(gauntletStore.isFailed);
 const isGauntletResult = computed(
   () => isGauntletComplete.value || isGauntletFailed.value
 );
@@ -51,6 +54,7 @@ const newMoveAvailable = ref<Move | null>(null);
 const showMoveSwapUI = ref(false);
 const moveSwapResolved = ref(false);
 const learnedMoveName = ref<string | null>(null);
+const isLeaving = ref(false);
 
 onMounted(async () => {
   if (!playerMonster.value || !enemyMonster.value) {
@@ -225,9 +229,12 @@ function skipNewMove() {
 
 function battleAgain() {
   sfx.playConfirm();
-  gauntletStore.resetGauntlet();
-  battleStore.$reset();
-  router.push("/");
+  isLeaving.value = true;
+  setTimeout(() => {
+    gauntletStore.resetGauntlet();
+    battleStore.$reset();
+    router.push("/");
+  }, 600);
 }
 
 function rematch() {
@@ -236,20 +243,22 @@ function rematch() {
     battleAgain();
     return;
   }
+  isLeaving.value = true;
   const playerId = playerMonster.value.id;
-  if (isGauntletResult.value) {
-    // Re-enter gauntlet with same player monster
-    gauntletStore.resetGauntlet();
-    battleStore.$reset();
-    gauntletStore.startGauntlet(playerId);
-    const firstOpponent = gauntletStore.currentOpponent;
-    battleStore.selectMonster(playerId, firstOpponent ?? undefined);
-    router.push("/gauntlet");
-  } else {
-    battleStore.$reset();
-    battleStore.selectMonster(playerId);
-    router.push("/battle");
-  }
+  setTimeout(() => {
+    if (isGauntletResult.value) {
+      gauntletStore.resetGauntlet();
+      battleStore.$reset();
+      gauntletStore.startGauntlet(playerId);
+      const firstOpponent = gauntletStore.currentOpponent;
+      battleStore.selectMonster(playerId, firstOpponent ?? undefined);
+      router.push("/gauntlet");
+    } else {
+      battleStore.$reset();
+      battleStore.selectMonster(playerId);
+      router.push("/battle");
+    }
+  }, 600);
 }
 </script>
 
@@ -258,6 +267,25 @@ function rematch() {
     ref="containerRef"
     class="min-h-screen flex flex-col items-center justify-center px-4 py-8"
   >
+    <!-- Leave transition overlay -->
+    <Transition
+      enter-active-class="transition-opacity duration-300"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+    >
+      <div
+        v-if="isLeaving"
+        class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-black"
+      >
+        <div class="relative w-16 h-16">
+          <div class="absolute inset-0 rounded-full border-4 border-white/10" />
+          <div
+            class="absolute inset-0 rounded-full border-4 border-t-purple-400 border-r-purple-400 border-b-transparent border-l-transparent animate-spin"
+          />
+        </div>
+        <p class="text-white/60 text-sm tracking-widest uppercase">Loading…</p>
+      </div>
+    </Transition>
     <Transition
       enter-active-class="transition-all duration-500"
       enter-from-class="opacity-0 translate-y-8"
@@ -646,10 +674,10 @@ function rematch() {
             icon="rotate-right"
             @click="battleAgain"
           >
-            New Battle
+            Return to Monster Select
           </BaseButton>
           <BaseButton variant="ghost" size="lg" icon="swords" @click="rematch">
-            {{ isGauntletResult ? "Retry Gauntlet" : "Rematch" }}
+            {{ isGauntletResult ? "Retry Gauntlet" : "New Match" }}
           </BaseButton>
         </div>
       </div>

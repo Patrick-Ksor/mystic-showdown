@@ -29,6 +29,7 @@ export const SUPER_EFFECTIVE: Record<ElementType, ElementType[]> = {
   metal: ["ice", "light", "nature"],
   light: ["shadow", "fire"],
   toxic: ["water", "psychic", "metal"],
+  void: ["shadow", "psychic", "light"],
 };
 
 // ─── Resistance Chart (many-to-many) ─────────────────────────
@@ -48,6 +49,7 @@ const NOT_EFFECTIVE: Record<ElementType, ElementType[]> = {
   metal: ["fire", "psychic", "toxic"],
   light: ["shadow", "metal"],
   toxic: ["earth", "wind", "psychic"],
+  void: [],
 };
 
 /**

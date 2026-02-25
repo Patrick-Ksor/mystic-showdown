@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
     <ElementBadge :element="props.monster.element" size="sm" class="mb-2" />
 
     <!-- Mini Stats -->
-    <div class="grid grid-cols-3 gap-1 text-[10px] text-white/60">
+    <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-white/60">
       <div class="flex items-center gap-1">
         <font-awesome-icon :icon="['fas', 'heart']" class="text-red-400" />
         <span>{{
@@ -163,6 +163,12 @@ onBeforeUnmount(() => {
         />
         <span>{{
           Math.floor(props.monster.defense * (1 + 0.02 * (props.level - 1)))
+        }}</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <font-awesome-icon :icon="['fas', 'bolt']" class="text-yellow-400" />
+        <span>{{
+          Math.floor(props.monster.speed * (1 + 0.02 * (props.level - 1)))
         }}</span>
       </div>
     </div>

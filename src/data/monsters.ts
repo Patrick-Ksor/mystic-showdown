@@ -23,6 +23,7 @@ import luxfawnSprite from "../assets/sprites/Luxfawn.png";
 import venomireSprite from "../assets/sprites/Venomire.png";
 import blightwingSprite from "../assets/sprites/Blightwing.png";
 import quarroxSprite from "../assets/sprites/Quarrox.png";
+import nihiluxSprite from "../assets/sprites/Nihilux.png";
 
 export const MONSTERS: MonsterDefinition[] = [
   {
@@ -32,6 +33,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 110,
     attack: 75,
     defense: 55,
+    speed: 75,
     weaknesses: ["earth", "ice"],
     learnset: [
       {
@@ -86,6 +88,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 125,
     attack: 55,
     defense: 60,
+    speed: 50,
     weaknesses: ["electric", "nature", "toxic"],
     learnset: [
       {
@@ -140,6 +143,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 95,
     attack: 85,
     defense: 60,
+    speed: 60,
     weaknesses: ["water", "earth", "light"],
     learnset: [
       {
@@ -192,6 +196,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 90,
     attack: 85,
     defense: 65,
+    speed: 70,
     weaknesses: ["earth", "ice"],
     learnset: [
       {
@@ -247,6 +252,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 105,
     attack: 70,
     defense: 65,
+    speed: 55,
     weaknesses: ["electric", "nature", "toxic"],
     learnset: [
       {
@@ -301,6 +307,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 115,
     attack: 60,
     defense: 65,
+    speed: 45,
     weaknesses: ["water", "earth", "light"],
     learnset: [
       {
@@ -355,6 +362,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 120,
     attack: 55,
     defense: 65,
+    speed: 40,
     weaknesses: ["water", "nature"],
     learnset: [
       {
@@ -410,6 +418,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 90,
     attack: 85,
     defense: 65,
+    speed: 50,
     weaknesses: ["fire", "metal"],
     learnset: [
       {
@@ -465,6 +474,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 85,
     attack: 90,
     defense: 65,
+    speed: 75,
     weaknesses: ["wind", "light"],
     learnset: [
       {
@@ -520,6 +530,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 100,
     attack: 60,
     defense: 80,
+    speed: 40,
     weaknesses: ["water", "nature"],
     learnset: [
       {
@@ -573,6 +584,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 105,
     attack: 65,
     defense: 70,
+    speed: 55,
     weaknesses: ["fire", "metal"],
     learnset: [
       {
@@ -626,6 +638,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 100,
     attack: 75,
     defense: 65,
+    speed: 65,
     weaknesses: ["wind", "light"],
     learnset: [
       {
@@ -683,6 +696,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 105,
     attack: 70,
     defense: 65,
+    speed: 70,
     weaknesses: ["electric", "ice"],
     learnset: [
       {
@@ -737,6 +751,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 90,
     attack: 85,
     defense: 65,
+    speed: 80,
     weaknesses: ["electric", "ice"],
     learnset: [
       {
@@ -792,6 +807,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 110,
     attack: 65,
     defense: 65,
+    speed: 50,
     weaknesses: ["fire", "ice", "metal"],
     learnset: [
       {
@@ -846,6 +862,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 120,
     attack: 50,
     defense: 70,
+    speed: 45,
     weaknesses: ["fire", "ice", "metal"],
     learnset: [
       {
@@ -902,6 +919,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 85,
     attack: 90,
     defense: 65,
+    speed: 70,
     weaknesses: ["shadow", "nature", "toxic"],
     learnset: [
       {
@@ -956,6 +974,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 100,
     attack: 70,
     defense: 70,
+    speed: 55,
     weaknesses: ["shadow", "nature", "toxic"],
     learnset: [
       {
@@ -1012,6 +1031,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 100,
     attack: 65,
     defense: 75,
+    speed: 45,
     weaknesses: ["fire", "psychic", "toxic"],
     learnset: [
       {
@@ -1066,6 +1086,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 120,
     attack: 50,
     defense: 70,
+    speed: 40,
     weaknesses: ["fire", "psychic", "toxic"],
     learnset: [
       {
@@ -1122,6 +1143,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 95,
     attack: 80,
     defense: 65,
+    speed: 65,
     weaknesses: ["shadow", "metal"],
     learnset: [
       {
@@ -1176,6 +1198,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 110,
     attack: 60,
     defense: 70,
+    speed: 60,
     weaknesses: ["shadow", "metal"],
     learnset: [
       {
@@ -1233,6 +1256,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 100,
     attack: 75,
     defense: 65,
+    speed: 55,
     weaknesses: ["earth", "wind", "psychic"],
     learnset: [
       {
@@ -1287,6 +1311,7 @@ export const MONSTERS: MonsterDefinition[] = [
     baseHP: 85,
     attack: 90,
     defense: 65,
+    speed: 70,
     weaknesses: ["earth", "wind", "psychic"],
     learnset: [
       {
@@ -1332,6 +1357,63 @@ export const MONSTERS: MonsterDefinition[] = [
       accuracy: 81,
       isSpecial: true,
       description: "Releases a choking miasma of toxic spores.",
+    },
+  },
+  // ─── VOID LEGENDARY ─────────────────────────────────────────
+  {
+    id: "nihilux",
+    name: "Nihilux",
+    element: "void",
+    baseHP: 150,
+    attack: 100,
+    defense: 85,
+    speed: 80,
+    weaknesses: ["light"],
+    learnset: [
+      {
+        level: 6,
+        move: {
+          name: "Rift Shatter",
+          power: 100,
+          element: "void",
+          accuracy: 82,
+          isSpecial: true,
+          description:
+            "Tears open a rift in reality, unleashing raw void energy.",
+        },
+      },
+      {
+        level: 12,
+        move: {
+          name: "Oblivion Pulse",
+          power: 120,
+          element: "void",
+          accuracy: 75,
+          isSpecial: true,
+          description:
+            "Erases a fragment of existence itself. Nothing survives the void.",
+        },
+      },
+    ],
+    spriteUrl: nihiluxSprite,
+    color: "#7c3aed",
+    lore: "Born from the space between worlds, Nihilux is the embodiment of nothingness given form. Legends say it existed before the elements themselves.",
+    basicMove: {
+      name: "Void Touch",
+      power: 55,
+      element: "void",
+      accuracy: 95,
+      isSpecial: false,
+      description: "A strike that unravels matter at the point of contact.",
+    },
+    specialMove: {
+      name: "Entropy Wave",
+      power: 90,
+      element: "void",
+      accuracy: 85,
+      isSpecial: true,
+      description:
+        "Unleashes a wave of pure entropy that decays everything in its path.",
     },
   },
 ];

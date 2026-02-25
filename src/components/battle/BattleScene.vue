@@ -97,65 +97,45 @@ async function showBannerAnimation(text: string) {
   }
 }
 
-// ─── Player Action Handler ─────────────────────────────────
-async function handlePlayerAction(action: ActionType) {
-  if (isProcessing.value || phase.value !== "playerTurn") return;
-  if (!playerMonster.value || !enemyMonster.value) return;
+// ─── Player Attack Animation ───────────────────────────────
+async function animatePlayerAttack(
+  action: ActionType
+): Promise<DamageResult | null> {
+  if (!playerMonster.value || !enemyMonster.value) return null;
 
-  isProcessing.value = true;
+  const moveIndex = parseInt(action.replace("move", ""));
+  const move = playerMonster.value.moves[moveIndex];
+  if (!move) return null;
 
   const enemyEl = enemySpriteRef.value?.el;
-  const playerEl = playerSpriteRef.value?.el;
 
-  if (action === "guard") {
-    // Guard animation on player
-    sfx.playGuard();
-    if (playerEl) await animateGuard(playerEl);
-    await battleStore.executePlayerAction(action);
-    await gsapDelay(0.5);
-  } else if (action === "run") {
-    sfx.playRun();
-    await battleStore.executePlayerAction(action);
-    if (phase.value === "select") {
-      router.push("/");
-      isProcessing.value = false;
-      return;
-    }
-    await gsapDelay(0.5);
-  } else {
-    // Attack action (move0-move3)
-    const moveIndex = parseInt(action.replace("move", ""));
-    const move = playerMonster.value.moves[moveIndex];
-    if (!move) {
-      isProcessing.value = false;
-      return;
-    }
-
-    // Play attack launch + element accent on enemy
-    if (enemyEl) {
-      sfx.playAttackLaunch();
-      sfx.playElementAccent(move.element);
-      await animateAttack(move.element, enemyEl);
-    }
-
-    const result = await battleStore.executePlayerAction(action);
-
-    // Damage or miss feedback
-    if (result && result.damage > 0 && enemyEl) {
-      if (result.isCritical) {
-        sfx.playCriticalHit();
-      } else {
-        sfx.playAttackHit();
-      }
-      await animateDamage(enemyEl, result.isCritical);
-    } else if (result && result.damage === 0) {
-      sfx.playMiss();
-    }
-
-    await gsapDelay(0.3);
+  // Play attack launch + element accent on enemy
+  if (enemyEl) {
+    sfx.playAttackLaunch();
+    sfx.playElementAccent(move.element);
+    await animateAttack(move.element, enemyEl);
   }
 
-  // Check for victory
+  const result = await battleStore.executePlayerAction(action);
+
+  // Damage or miss feedback
+  if (result && result.damage > 0 && enemyEl) {
+    if (result.isCritical) {
+      sfx.playCriticalHit();
+    } else {
+      sfx.playAttackHit();
+    }
+    await animateDamage(enemyEl, result.isCritical);
+  } else if (result && result.damage === 0) {
+    sfx.playMiss();
+  }
+
+  await gsapDelay(0.3);
+  return result;
+}
+
+// ─── Check Victory ─────────────────────────────────────────
+async function checkVictory(): Promise<boolean> {
   if (phase.value === "victory") {
     if (enemySpriteRef.value?.el) {
       sfx.playFaint();
@@ -165,12 +145,99 @@ async function handlePlayerAction(action: ActionType) {
     await showBannerAnimation("VICTORY!");
     await gsapDelay(0.5);
     emit("victory");
+    return true;
+  }
+  return false;
+}
+
+// ─── Check Defeat ──────────────────────────────────────────
+async function checkDefeat(): Promise<boolean> {
+  if (phase.value === "defeat") {
+    if (playerSpriteRef.value?.el) {
+      sfx.playFaint();
+      await animateFaint(playerSpriteRef.value.el);
+    }
+    sfx.playDefeat();
+    await showBannerAnimation("DEFEATED...");
+    await gsapDelay(0.5);
+    emit("defeat");
+    return true;
+  }
+  return false;
+}
+
+// ─── Player Action Handler ─────────────────────────────────
+async function handlePlayerAction(action: ActionType) {
+  if (isProcessing.value || phase.value !== "playerTurn") return;
+  if (!playerMonster.value || !enemyMonster.value) return;
+
+  isProcessing.value = true;
+
+  const playerEl = playerSpriteRef.value?.el;
+
+  if (action === "guard") {
+    // Guard always resolves before enemy attack
+    sfx.playGuard();
+    if (playerEl) await animateGuard(playerEl);
+    await battleStore.executePlayerAction(action);
+    await gsapDelay(0.5);
+
+    await executeEnemyTurn();
     isProcessing.value = false;
     return;
   }
 
-  // Enemy turn
-  await executeEnemyTurn();
+  if (action === "run") {
+    sfx.playRun();
+    await battleStore.executePlayerAction(action);
+    if (phase.value === "select") {
+      router.push("/");
+      isProcessing.value = false;
+      return;
+    }
+    await gsapDelay(0.5);
+
+    await executeEnemyTurn();
+    isProcessing.value = false;
+    return;
+  }
+
+  // Attack action (move0-move3) — speed determines turn order
+  const moveIndex = parseInt(action.replace("move", ""));
+  const move = playerMonster.value.moves[moveIndex];
+  if (!move) {
+    isProcessing.value = false;
+    return;
+  }
+
+  const playerSpeed = playerMonster.value.speed;
+  const enemySpeed = enemyMonster.value.speed;
+  // Tie-break: player goes first when speeds are equal
+  const playerFirst = playerSpeed >= enemySpeed;
+
+  if (playerFirst) {
+    // Player attacks → check victory → enemy turn
+    await animatePlayerAttack(action);
+    if (await checkVictory()) {
+      isProcessing.value = false;
+      return;
+    }
+    await executeEnemyTurn();
+  } else {
+    // Enemy is faster → enemy attacks first → check defeat → player attacks → check victory
+    await executeEnemyTurn();
+    if (phase.value === "defeat") {
+      isProcessing.value = false;
+      return;
+    }
+    await animatePlayerAttack(action);
+    if (await checkVictory()) {
+      isProcessing.value = false;
+      return;
+    }
+    // Back to player turn (no extra enemy turn)
+    battleStore.beginPlayerTurn();
+  }
 
   isProcessing.value = false;
 }
@@ -207,17 +274,7 @@ async function executeEnemyTurn() {
   await gsapDelay(0.3);
 
   // Check for defeat
-  if (phase.value === "defeat") {
-    if (playerSpriteRef.value?.el) {
-      sfx.playFaint();
-      await animateFaint(playerSpriteRef.value.el);
-    }
-    sfx.playDefeat();
-    await showBannerAnimation("DEFEATED...");
-    await gsapDelay(0.5);
-    emit("defeat");
-    return;
-  }
+  if (await checkDefeat()) return;
 
   // Back to player turn
   battleStore.beginPlayerTurn();

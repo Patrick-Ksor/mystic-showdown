@@ -67,6 +67,8 @@ export const useGauntletStore = defineStore("gauntlet", () => {
     if (currentRound.value >= totalRounds) {
       isComplete.value = true;
       isActive.value = false;
+      // Reward: unlock the void legendary for completing the gauntlet
+      progressionStore.unlockMonster("nihilux");
     } else {
       currentRound.value++;
     }

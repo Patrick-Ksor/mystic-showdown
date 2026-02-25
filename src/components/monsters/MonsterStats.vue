@@ -30,6 +30,9 @@ const scaledATK = computed(() =>
 const scaledDEF = computed(() =>
   Math.floor(props.monster.defense * (1 + 0.02 * (props.level - 1)))
 );
+const scaledSPD = computed(() =>
+  Math.floor(props.monster.speed * (1 + 0.02 * (props.level - 1)))
+);
 
 // Scale bar max denominators by same factor at level 20 for visual consistency
 const maxHP = computed(() =>
@@ -39,6 +42,9 @@ const maxATK = computed(() =>
   Math.floor(85 * (1 + 0.02 * (props.maxLevel - 1)))
 );
 const maxDEF = computed(() =>
+  Math.floor(80 * (1 + 0.02 * (props.maxLevel - 1)))
+);
+const maxSPD = computed(() =>
   Math.floor(80 * (1 + 0.02 * (props.maxLevel - 1)))
 );
 
@@ -201,6 +207,22 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
           </div>
           <span class="text-white/80 text-xs w-8 text-right">{{
             scaledDEF
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2 text-sm">
+          <font-awesome-icon
+            :icon="['fas', 'bolt']"
+            class="text-yellow-400 w-4"
+          />
+          <span class="text-white/60 w-10">SPD</span>
+          <div class="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+            <div
+              class="h-full rounded-full bg-yellow-400"
+              :style="{ width: `${(scaledSPD / maxSPD) * 100}%` }"
+            />
+          </div>
+          <span class="text-white/80 text-xs w-8 text-right">{{
+            scaledSPD
           }}</span>
         </div>
       </div>
