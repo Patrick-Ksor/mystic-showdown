@@ -8,6 +8,10 @@ const STORAGE_KEY = "monsterLevels";
 const MAX_LEVEL = 20;
 const STAT_SCALE_PER_LEVEL = 0.02; // +2% per level above 1
 
+/** Maximum number of special moves a player monster can have equipped.
+ *  Combined with the 1 basic move this fills all 4 battle action slots. */
+export const MAX_EQUIPPED_SPECIALS = 3;
+
 function xpForLevel(level: number): number {
   return level * 50; // 50 XP to reach L2, 100 for L3, etc.
 }
@@ -92,15 +96,17 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
 
   /**
    * Persist the equipped special move names for a monster.
+   * Silently trims to MAX_EQUIPPED_SPECIALS if more names are provided.
    */
   function setEquippedMoveNames(monsterId: string, moveNames: string[]): void {
+    const capped = moveNames.slice(0, MAX_EQUIPPED_SPECIALS);
     const existing = monsterLevels.value.find((m) => m.id === monsterId);
     if (existing) {
-      existing.equippedMoveNames = moveNames;
+      existing.equippedMoveNames = capped;
     } else {
       monsterLevels.value = [
         ...monsterLevels.value,
-        { id: monsterId, level: 1, xp: 0, equippedMoveNames: moveNames },
+        { id: monsterId, level: 1, xp: 0, equippedMoveNames: capped },
       ];
     }
     saveToStorage(monsterLevels.value);
@@ -163,7 +169,7 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
   ): Move[] {
     if (isEnemy) {
       const specials = getAvailableSpecials(def, level);
-      return [def.basicMove, ...specials.slice(0, 3)];
+      return [def.basicMove, ...specials.slice(0, MAX_EQUIPPED_SPECIALS)];
     }
 
     const equippedNames = getEquippedMoveNames(def.id);
@@ -176,7 +182,8 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
     ];
     const equippedSpecials = equippedNames
       .map((name) => allSpecials.find((m) => m.name === name))
-      .filter((m): m is NonNullable<typeof m> => m !== undefined);
+      .filter((m): m is NonNullable<typeof m> => m !== undefined)
+      .slice(0, MAX_EQUIPPED_SPECIALS);
 
     return [def.basicMove, ...equippedSpecials];
   }

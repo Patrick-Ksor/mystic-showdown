@@ -302,7 +302,7 @@ export const MONSTERS: MonsterDefinition[] = [
       isSpecial: true,
       description:
         "Summons a crushing column of abyssal seawater. The deep-tide energy restores the user's vitality.",
-      effect: { type: "heal", chance: 100, value: 25 },
+      effect: { type: "heal", chance: 100, value: 10 },
     },
   },
   {
@@ -825,7 +825,7 @@ export const MONSTERS: MonsterDefinition[] = [
           isSpecial: true,
           description:
             "Causes explosive plant growth that entangles and crushes. Channels the life-force back into the user.",
-          effect: { type: "heal", chance: 100, value: 25 },
+          effect: { type: "heal", chance: 100, value: 10 },
         },
       },
       {
@@ -1254,7 +1254,7 @@ export const MONSTERS: MonsterDefinition[] = [
       isSpecial: true,
       description:
         "Detonates a sphere of concentrated luminance. The sacred light washes over the user, mending their wounds.",
-      effect: { type: "heal", chance: 100, value: 25 },
+      effect: { type: "heal", chance: 100, value: 10 },
     },
   },
 

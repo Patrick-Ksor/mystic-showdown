@@ -7,7 +7,10 @@ import { useBattleStore } from "@/stores/useBattleStore";
 import { useGameStore } from "@/stores/useGameStore";
 import { useProgressionStore } from "@/stores/useProgressionStore";
 import { useGauntletStore } from "@/stores/useGauntletStore";
-import { useMonsterLevelStore } from "@/stores/useMonsterLevelStore";
+import {
+  useMonsterLevelStore,
+  MAX_EQUIPPED_SPECIALS,
+} from "@/stores/useMonsterLevelStore";
 import { MONSTERS } from "@/data/monsters";
 import { useConfetti } from "@/composables/useConfetti";
 import { useSoundEffects } from "@/composables/useSoundEffects";
@@ -108,8 +111,8 @@ onMounted(async () => {
       const equippedNames = monsterLevelStore.getEquippedMoveNames(
         playerMonster.value.id
       );
-      if (equippedNames.length < 3) {
-        // Auto-equip: less than 3 specials
+      if (equippedNames.length < MAX_EQUIPPED_SPECIALS) {
+        // Auto-equip: has a free special slot
         monsterLevelStore.setEquippedMoveNames(playerMonster.value.id, [
           ...equippedNames,
           result.newMove.name,
@@ -166,6 +169,12 @@ onMounted(async () => {
         },
       }
     );
+
+    // Play tick sounds during the XP bar animation
+    if (xpEarned.value > 0) {
+      const xpTickInterval = window.setInterval(() => sfx.playXPTick(), 90);
+      setTimeout(() => clearInterval(xpTickInterval), 1200);
+    }
   }
 
   // Victory confetti

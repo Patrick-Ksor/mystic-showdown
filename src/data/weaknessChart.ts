@@ -49,7 +49,7 @@ const NOT_EFFECTIVE: Record<ElementType, ElementType[]> = {
   metal: ["fire", "psychic", "toxic"],
   light: ["shadow", "metal"],
   toxic: ["earth", "wind", "psychic"],
-  void: [],
+  void: ["shadow", "psychic", "light"],
 };
 
 /**
@@ -75,6 +75,13 @@ export function getEffectivenessMultiplier(
 
   return { multiplier: 1.0, effectiveness: "neutral" };
 }
+
+/**
+ * Damage multiplier applied when a move's element does NOT match
+ * the attacker's element (off-element penalty).
+ * Matching element = 1.0 (full damage). Off-element = this multiplier.
+ */
+export const STAB_PENALTY = 0.75;
 
 /**
  * Calculate damage dealt by an attacker's move against a defender.

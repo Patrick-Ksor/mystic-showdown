@@ -4,6 +4,7 @@ import type { MonsterDefinition, Move } from "@/types";
 import { ELEMENT_COLORS } from "@/types";
 import ElementBadge from "@/components/ui/ElementBadge.vue";
 import { TUTOR_MOVES } from "@/data/tutorMoves";
+import { MAX_EQUIPPED_SPECIALS } from "@/stores/useMonsterLevelStore";
 
 interface Props {
   monster: MonsterDefinition;
@@ -67,6 +68,10 @@ const effectiveEquipped = computed(() => {
   if (props.equippedMoveNames.length > 0) return props.equippedMoveNames;
   return [props.monster.specialMove.name];
 });
+
+const isAtMaxEquipped = computed(
+  () => effectiveEquipped.value.length >= MAX_EQUIPPED_SPECIALS
+);
 
 // All special moves in order: starter, then learnset (sorted by level), then tutor moves
 interface SpecialMoveEntry {
@@ -251,8 +256,16 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
 
     <!-- Moves -->
     <div class="space-y-2">
-      <h4 class="text-xs font-bold text-white/40 uppercase tracking-wider">
-        Moves
+      <h4
+        class="text-xs font-bold text-white/40 uppercase tracking-wider flex items-center justify-between"
+      >
+        <span>Moves</span>
+        <span
+          class="text-[10px] font-bold tracking-wide"
+          :class="isAtMaxEquipped ? 'text-amber-400/80' : 'text-white/25'"
+        >
+          {{ effectiveEquipped.length }} / {{ MAX_EQUIPPED_SPECIALS }} specials
+        </span>
       </h4>
       <div class="space-y-1.5">
         <!-- Basic Move -->
@@ -284,16 +297,24 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
               ? 'bg-white/[0.02] border-white/5 opacity-50'
               : entry.isEquipped
               ? 'bg-white/5 border-white/10'
+              : isAtMaxEquipped
+              ? 'bg-white/[0.02] border-white/5 opacity-40 cursor-not-allowed'
               : 'bg-white/[0.03] border-white/5 opacity-70',
-            entry.isUnlocked ? 'cursor-pointer hover:bg-white/10' : '',
+            entry.isUnlocked && (!isAtMaxEquipped || entry.isEquipped)
+              ? 'cursor-pointer hover:bg-white/10'
+              : '',
           ]"
-          @click="entry.isUnlocked && emit('toggle-equip', entry.move.name)"
+          @click="
+            entry.isUnlocked &&
+              (entry.isEquipped || !isAtMaxEquipped) &&
+              emit('toggle-equip', entry.move.name)
+          "
         >
           <div
             class="flex items-center gap-2 text-sm font-semibold"
             :style="{
               color: entry.isUnlocked
-                ? ELEMENT_COLORS[props.monster.element]
+                ? ELEMENT_COLORS[entry.move.element]
                 : 'rgba(255,255,255,0.3)',
             }"
           >

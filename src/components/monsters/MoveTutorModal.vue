@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useGameStore } from "@/stores/useGameStore";
-import { useMonsterLevelStore } from "@/stores/useMonsterLevelStore";
+import {
+  useMonsterLevelStore,
+  MAX_EQUIPPED_SPECIALS,
+} from "@/stores/useMonsterLevelStore";
 import { TUTOR_MOVES } from "@/data/tutorMoves";
 import { ELEMENT_COLORS, ELEMENT_ICONS } from "@/types";
 import type { MonsterDefinition } from "@/types";
@@ -39,7 +42,7 @@ function purchase(moveName: string, cost: number) {
 
   // Auto-equip if there's a free slot
   const equipped = monsterLevelStore.getEquippedMoveNames(props.monster.id);
-  if (equipped.length < 3) {
+  if (equipped.length < MAX_EQUIPPED_SPECIALS) {
     monsterLevelStore.setEquippedMoveNames(props.monster.id, [
       ...equipped,
       moveName,

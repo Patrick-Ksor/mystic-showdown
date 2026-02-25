@@ -112,7 +112,7 @@ async function animatePlayerAttack(
   // Play attack launch + element accent on enemy
   if (enemyEl) {
     sfx.playAttackLaunch();
-    sfx.playElementAccent(move.element);
+    sfx.playElementAccent(move.element, move.secondaryElement);
     await animateAttack(move.element, enemyEl);
   }
 
@@ -123,7 +123,7 @@ async function animatePlayerAttack(
     if (result.isCritical) {
       sfx.playCriticalHit();
     } else {
-      sfx.playAttackHit();
+      sfx.playAttackHit(result.isSpecial ?? false);
     }
     await animateDamage(enemyEl, result.isCritical);
   } else if (result && result.damage === 0) {
@@ -280,7 +280,7 @@ async function executeEnemyTurn() {
       if (result.isCritical) {
         sfx.playCriticalHit();
       } else {
-        sfx.playAttackHit();
+        sfx.playAttackHit(result.isSpecial ?? false);
       }
       await animateDamage(playerEl, result.isCritical);
     } else {
@@ -381,7 +381,7 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Bottom Section: Battle Log + Action Menu -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 px-4 pb-4 h-52 shrink-0">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 px-4 pb-4 shrink-0">
       <BattleLog :entries="battleLog" />
       <ActionMenu
         v-if="playerMonster"

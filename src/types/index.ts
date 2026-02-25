@@ -86,6 +86,8 @@ export interface Move {
   name: string;
   power: number;
   element: ElementType;
+  /** Optional secondary element for tutor moves — triggers layered sound */
+  secondaryElement?: ElementType;
   accuracy: number;
   isSpecial: boolean;
   description: string;
@@ -171,6 +173,10 @@ export interface DamageResult {
   isCritical: boolean;
   effectiveness: "super" | "resisted" | "neutral";
   message: string;
+  /** Whether the move that caused this result was a special (vs physical) attack */
+  isSpecial?: boolean;
+  /** True when the move element matches the attacker's element (full damage) */
+  isStab?: boolean;
 }
 
 // ─── Game Mode ───────────────────────────────────────────────

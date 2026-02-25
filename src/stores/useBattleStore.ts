@@ -16,6 +16,7 @@ import {
   getEffectivenessMultiplier,
   calculateDamage,
   rollCritical,
+  STAB_PENALTY,
 } from "@/data/weaknessChart";
 import { useProgressionStore } from "@/stores/useProgressionStore";
 import { useMonsterLevelStore } from "@/stores/useMonsterLevelStore";
@@ -275,6 +276,8 @@ export const useBattleStore = defineStore("battle", () => {
         isCritical: false,
         effectiveness: "neutral",
         message: `${attacker.name}'s ${move.name} missed!`,
+        isSpecial: move.isSpecial,
+        isStab: move.element === attacker.element,
       };
       addLog(result.message, "miss");
       lastDamageResult.value = { ...result, target };
@@ -288,13 +291,22 @@ export const useBattleStore = defineStore("battle", () => {
       defender.element,
     );
 
-    const damage = calculateDamage(
-      move.power,
-      attacker.attack,
-      defender.defense,
-      multiplier,
-      isCritical,
-      defender.isGuarding,
+    // STAB: same element = full damage; different element = STAB_PENALTY
+    const isStab = move.element === attacker.element;
+    const stabMultiplier = isStab ? 1.0 : STAB_PENALTY;
+
+    const damage = Math.max(
+      1,
+      Math.floor(
+        calculateDamage(
+          move.power,
+          attacker.attack,
+          defender.defense,
+          multiplier,
+          isCritical,
+          defender.isGuarding,
+        ) * stabMultiplier,
+      ),
     );
 
     // Apply damage
@@ -306,13 +318,24 @@ export const useBattleStore = defineStore("battle", () => {
     // Build message
     let message = `${attacker.name} used ${move.name}! Dealt ${damage} damage!`;
 
-    const result: DamageResult = { damage, isCritical, effectiveness, message };
+    const result: DamageResult = {
+      damage,
+      isCritical,
+      effectiveness,
+      message,
+      isSpecial: move.isSpecial,
+      isStab,
+    };
     lastDamageResult.value = { ...result, target };
 
     addLog(message, "normal");
 
     if (isCritical) {
       addLog("A critical hit!", "critical");
+    }
+
+    if (!isStab) {
+      addLog("Off-element — reduced damage!", "system");
     }
 
     if (effectiveness === "super") {
