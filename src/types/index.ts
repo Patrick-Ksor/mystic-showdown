@@ -67,6 +67,14 @@ export interface MoveEffect {
   value?: number;
 }
 
+// ─── Tutor Moves ─────────────────────────────────────────────
+export interface TutorMove extends Move {
+  /** Mystic Coins required to teach this move */
+  cost: number;
+  /** Short flavour label for the cross-type theme */
+  crossTheme: string;
+}
+
 // ─── Status Conditions ───────────────────────────────────────
 export interface StatusCondition {
   type: "poison" | "stun" | "sleep";
@@ -177,6 +185,7 @@ export interface MonsterProgress {
   level: number;
   xp: number;
   equippedMoveNames?: string[];
+  learnedTutorMoveNames?: string[];
 }
 
 // ─── Gauntlet State ──────────────────────────────────────────

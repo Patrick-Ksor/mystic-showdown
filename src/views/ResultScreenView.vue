@@ -54,6 +54,7 @@ const newMoveAvailable = ref<Move | null>(null);
 const showMoveSwapUI = ref(false);
 const moveSwapResolved = ref(false);
 const learnedMoveName = ref<string | null>(null);
+const coinsEarned = ref(0);
 const isLeaving = ref(false);
 
 onMounted(async () => {
@@ -86,9 +87,10 @@ onMounted(async () => {
   }
 
   didLevelUp.value = gameStore.awardXP(xpEarned.value);
+  coinsEarned.value = gameStore.awardCoins(isVictory.value);
 
-  // Award monster XP
-  if (playerMonster.value) {
+  // Award monster XP only on victory
+  if (playerMonster.value && isVictory.value) {
     monsterXPEarned.value = monsterLevelStore.calculateBattleXP(
       enemyMonster.value.level,
       isVictory.value
@@ -446,6 +448,23 @@ function rematch() {
               <span class="font-bold text-yellow-400">+{{ xpDisplay }}</span>
             </div>
 
+            <!-- Mystic Coins -->
+            <div class="flex items-center justify-between text-sm mb-2">
+              <span class="text-white/50 flex items-center gap-1.5">
+                <font-awesome-icon
+                  :icon="['fas', 'coins']"
+                  class="text-amber-400"
+                />
+                Mystic Coins
+              </span>
+              <span class="font-bold text-amber-400"
+                >+{{ coinsEarned }}
+                <span class="text-white/30 font-normal"
+                  >(total: {{ gameStore.coins }})</span
+                ></span
+              >
+            </div>
+
             <!-- XP Bar -->
             <div
               class="h-3 bg-black/60 rounded-full overflow-hidden border border-white/10"
@@ -482,8 +501,8 @@ function rematch() {
             </span>
           </div>
 
-          <!-- Monster XP Section -->
-          <div class="pt-3 border-t border-white/10">
+          <!-- Monster XP Section (victory only) -->
+          <div v-if="isVictory" class="pt-3 border-t border-white/10">
             <div class="flex items-center justify-between text-sm mb-2">
               <span class="text-white/50 flex items-center gap-1.5">
                 <font-awesome-icon
@@ -668,15 +687,15 @@ function rematch() {
 
         <!-- Actions -->
         <div class="flex flex-col sm:flex-row gap-3 justify-center">
-          <BaseButton
-            variant="primary"
-            size="lg"
-            icon="rotate-right"
-            @click="battleAgain"
-          >
+          <BaseButton variant="primary" size="lg" @click="battleAgain">
             Return to Monster Select
           </BaseButton>
-          <BaseButton variant="ghost" size="lg" icon="swords" @click="rematch">
+          <BaseButton
+            variant="ghost"
+            size="lg"
+            icon="hand-fist"
+            @click="rematch"
+          >
             {{ isGauntletResult ? "Retry Gauntlet" : "New Match" }}
           </BaseButton>
         </div>

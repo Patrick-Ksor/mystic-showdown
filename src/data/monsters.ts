@@ -1388,7 +1388,7 @@ export const MONSTERS: MonsterDefinition[] = [
         level: 6,
         move: {
           name: "Rift Shatter",
-          power: 100,
+          power: 120,
           element: "void",
           accuracy: 82,
           isSpecial: true,
@@ -1400,7 +1400,7 @@ export const MONSTERS: MonsterDefinition[] = [
         level: 12,
         move: {
           name: "Oblivion Pulse",
-          power: 120,
+          power: 150,
           element: "void",
           accuracy: 75,
           isSpecial: true,

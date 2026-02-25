@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import MuteToggle from "@/components/ui/MuteToggle.vue";
+import TrainerHUD from "@/components/ui/TrainerHUD.vue";
 </script>
 
 <template>
   <div class="min-h-screen bg-[#0a0a14]">
+    <TrainerHUD />
     <MuteToggle />
     <RouterView v-slot="{ Component }">
       <Transition

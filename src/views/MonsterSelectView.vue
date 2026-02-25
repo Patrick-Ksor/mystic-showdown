@@ -11,6 +11,7 @@ import { MONSTERS } from "@/data/monsters";
 import type { MonsterDefinition, DifficultyTier } from "@/types";
 import MonsterCard from "@/components/monsters/MonsterCard.vue";
 import MonsterStats from "@/components/monsters/MonsterStats.vue";
+import MoveTutorModal from "@/components/monsters/MoveTutorModal.vue";
 import GlowText from "@/components/ui/GlowText.vue";
 import BaseButton from "@/components/ui/BaseButton.vue";
 import { ELEMENT_COLORS } from "@/types";
@@ -58,6 +59,7 @@ const difficultyTiers: {
 
 const selectedId = ref<string | null>(null);
 const gridRef = ref<HTMLElement | null>(null);
+const showTutorModal = ref(false);
 
 const selectedMonster = computed<MonsterDefinition | null>(() => {
   if (!selectedId.value) return null;
@@ -85,6 +87,15 @@ function enterGauntlet() {
   const firstOpponent = gauntletStore.currentOpponent;
   battleStore.selectMonster(selectedId.value, firstOpponent ?? undefined);
   router.push("/gauntlet");
+}
+
+function handleToggleEquip(moveName: string) {
+  if (!selectedId.value) return;
+  const current = monsterLevelStore.getEquippedMoveNames(selectedId.value);
+  const next = current.includes(moveName)
+    ? current.filter((n) => n !== moveName)
+    : [...current, moveName];
+  monsterLevelStore.setEquippedMoveNames(selectedId.value, next);
 }
 
 onMounted(() => {
@@ -171,6 +182,16 @@ onMounted(() => {
         }"
       >
         <template v-if="selectedMonster">
+          <!-- Coin balance -->
+          <div class="flex items-center justify-end mb-3">
+            <span
+              class="flex items-center gap-1.5 text-sm font-bold text-amber-400"
+            >
+              <font-awesome-icon :icon="['fas', 'coins']" />
+              {{ gameStore.coins }} Mystic Coins
+            </span>
+          </div>
+
           <MonsterStats
             :monster="selectedMonster"
             :level="monsterLevelStore.getLevel(selectedMonster.id)"
@@ -184,6 +205,10 @@ onMounted(() => {
             :equipped-move-names="
               monsterLevelStore.getEquippedMoveNames(selectedMonster.id)
             "
+            :learned-tutor-move-names="
+              monsterLevelStore.getTutorMoveNames(selectedMonster.id)
+            "
+            @toggle-equip="handleToggleEquip"
           />
 
           <div class="mt-6 flex flex-col gap-2">
@@ -226,6 +251,15 @@ onMounted(() => {
             </div>
 
             <BaseButton
+              variant="primary"
+              size="lg"
+              icon="book-open"
+              class="w-full"
+              @click="showTutorModal = true"
+            >
+              Move Tutor
+            </BaseButton>
+            <BaseButton
               :variant="selectedMonster.element"
               size="lg"
               icon="chevron-right"
@@ -237,7 +271,7 @@ onMounted(() => {
             <BaseButton
               variant="primary"
               size="lg"
-              icon="swords"
+              icon="hand-fist"
               class="w-full"
               :disabled="!gauntletStore.canStartGauntlet"
               :title="
@@ -267,5 +301,12 @@ onMounted(() => {
         </template>
       </div>
     </div>
+
+    <!-- Move Tutor Modal (inside root div — required for Transition single root) -->
+    <MoveTutorModal
+      v-if="showTutorModal && selectedMonster"
+      :monster="selectedMonster"
+      @close="showTutorModal = false"
+    />
   </div>
 </template>

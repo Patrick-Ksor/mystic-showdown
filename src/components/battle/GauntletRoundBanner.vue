@@ -73,7 +73,7 @@ onMounted(() => {
 
     <!-- Sword icon right -->
     <div class="flex items-center gap-1 text-purple-400/60">
-      <font-awesome-icon :icon="['fas', 'swords']" class="text-sm" />
+      <font-awesome-icon :icon="['fas', 'hand-fist']" class="text-sm" />
     </div>
   </div>
 </template>

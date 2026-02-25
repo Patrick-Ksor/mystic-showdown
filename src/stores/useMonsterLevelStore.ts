@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import type { MonsterDefinition, MonsterProgress, Move } from "@/types";
 import { MONSTERS } from "@/data/monsters";
+import { TUTOR_MOVES } from "@/data/tutorMoves";
 
 const STORAGE_KEY = "monsterLevels";
 const MAX_LEVEL = 20;
@@ -105,9 +106,34 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
     saveToStorage(monsterLevels.value);
   }
 
+  // ─── Tutor Move Management ─────────────────────────────────
+
+  function getTutorMoveNames(monsterId: string): string[] {
+    return (
+      monsterLevels.value.find((m) => m.id === monsterId)
+        ?.learnedTutorMoveNames ?? []
+    );
+  }
+
+  function learnTutorMove(monsterId: string, moveName: string): void {
+    const existing = monsterLevels.value.find((m) => m.id === monsterId);
+    if (existing) {
+      if (!existing.learnedTutorMoveNames) existing.learnedTutorMoveNames = [];
+      if (!existing.learnedTutorMoveNames.includes(moveName)) {
+        existing.learnedTutorMoveNames.push(moveName);
+      }
+    } else {
+      monsterLevels.value = [
+        ...monsterLevels.value,
+        { id: monsterId, level: 1, xp: 0, learnedTutorMoveNames: [moveName] },
+      ];
+    }
+    saveToStorage(monsterLevels.value);
+  }
+
   /**
    * Get all special moves available to a monster at a given level
-   * (starter special + any learnset moves unlocked at or below that level).
+   * (starter special + learnset moves at or below that level + learned tutor moves).
    */
   function getAvailableSpecials(def: MonsterDefinition, level: number): Move[] {
     const specials: Move[] = [def.specialMove];
@@ -115,6 +141,12 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
       if (entry.level <= level) {
         specials.push(entry.move);
       }
+    }
+    // Append learned tutor moves
+    const tutorNames = getTutorMoveNames(def.id);
+    for (const name of tutorNames) {
+      const tm = TUTOR_MOVES.find((t) => t.name === name);
+      if (tm) specials.push(tm);
     }
     return specials;
   }
@@ -135,10 +167,16 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
     }
 
     const equippedNames = getEquippedMoveNames(def.id);
-    const allSpecials = [def.specialMove, ...def.learnset.map((l) => l.move)];
+    const allSpecials: Move[] = [
+      def.specialMove,
+      ...def.learnset.map((l) => l.move),
+      ...getTutorMoveNames(def.id)
+        .map((name) => TUTOR_MOVES.find((t) => t.name === name))
+        .filter((m): m is NonNullable<typeof m> => m !== undefined),
+    ];
     const equippedSpecials = equippedNames
       .map((name) => allSpecials.find((m) => m.name === name))
-      .filter((m): m is Move => m !== undefined);
+      .filter((m): m is NonNullable<typeof m> => m !== undefined);
 
     return [def.basicMove, ...equippedSpecials];
   }
@@ -260,6 +298,8 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
     calculateBattleXP,
     awardXP,
     setEquippedMoveNames,
+    getTutorMoveNames,
+    learnTutorMove,
     resetLevels,
   };
 });

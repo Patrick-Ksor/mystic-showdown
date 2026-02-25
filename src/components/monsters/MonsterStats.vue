@@ -3,6 +3,7 @@ import { computed } from "vue";
 import type { MonsterDefinition, Move } from "@/types";
 import { ELEMENT_COLORS } from "@/types";
 import ElementBadge from "@/components/ui/ElementBadge.vue";
+import { TUTOR_MOVES } from "@/data/tutorMoves";
 
 interface Props {
   monster: MonsterDefinition;
@@ -11,6 +12,7 @@ interface Props {
   xpToNext?: number;
   maxLevel?: number;
   equippedMoveNames?: string[];
+  learnedTutorMoveNames?: string[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -19,7 +21,12 @@ const props = withDefaults(defineProps<Props>(), {
   xpToNext: 50,
   maxLevel: 20,
   equippedMoveNames: () => [],
+  learnedTutorMoveNames: () => [],
 });
+
+const emit = defineEmits<{
+  "toggle-equip": [moveName: string];
+}>();
 
 const scaledHP = computed(() =>
   Math.floor(props.monster.baseHP * (1 + 0.02 * (props.level - 1)))
@@ -61,12 +68,13 @@ const effectiveEquipped = computed(() => {
   return [props.monster.specialMove.name];
 });
 
-// All special moves in order: starter, then learnset (sorted by level)
+// All special moves in order: starter, then learnset (sorted by level), then tutor moves
 interface SpecialMoveEntry {
   move: Move;
-  unlockLevel: number; // 1 for starter
+  unlockLevel: number; // 1 for starter, 0 for tutor
   isUnlocked: boolean;
   isEquipped: boolean;
+  isTutor?: boolean;
 }
 
 const specialMoves = computed<SpecialMoveEntry[]>(() => {
@@ -87,6 +95,19 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
       isUnlocked: props.level >= entry.level,
       isEquipped: effectiveEquipped.value.includes(entry.move.name),
     });
+  }
+  // Tutor moves — always unlocked once learned
+  for (const name of props.learnedTutorMoveNames) {
+    const tutorMove = TUTOR_MOVES.find((t) => t.name === name);
+    if (tutorMove) {
+      entries.push({
+        move: tutorMove,
+        unlockLevel: 0,
+        isUnlocked: true,
+        isEquipped: effectiveEquipped.value.includes(tutorMove.name),
+        isTutor: true,
+      });
+    }
   }
   return entries;
 });
@@ -253,18 +274,20 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
           </p>
         </div>
 
-        <!-- Special Moves (starter + learnset) -->
+        <!-- Special Moves (starter + learnset + tutor) -->
         <div
           v-for="entry in specialMoves"
           :key="entry.move.name"
           class="p-2 rounded-lg border transition-all duration-200"
-          :class="
+          :class="[
             !entry.isUnlocked
               ? 'bg-white/[0.02] border-white/5 opacity-50'
               : entry.isEquipped
               ? 'bg-white/5 border-white/10'
-              : 'bg-white/[0.03] border-white/5 opacity-70'
-          "
+              : 'bg-white/[0.03] border-white/5 opacity-70',
+            entry.isUnlocked ? 'cursor-pointer hover:bg-white/10' : '',
+          ]"
+          @click="entry.isUnlocked && emit('toggle-equip', entry.move.name)"
         >
           <div
             class="flex items-center gap-2 text-sm font-semibold"
@@ -280,6 +303,12 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
             />
             {{ entry.move.name }}
             <span class="ml-auto flex items-center gap-1.5">
+              <span
+                v-if="entry.isTutor"
+                class="text-[9px] px-1.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 font-bold"
+              >
+                TUTOR
+              </span>
               <span
                 v-if="entry.isEquipped"
                 class="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300 font-bold"

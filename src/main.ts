@@ -38,6 +38,13 @@ import {
   faCircleXmark,
   faTriangleExclamation,
   faArrowUp,
+  faCoins,
+  faLock,
+  faLockOpen,
+  faBookOpen,
+  faXmark,
+  faCircleNotch,
+  faPaw,
 } from "@fortawesome/free-solid-svg-icons";
 
 import router from "./router";
@@ -79,6 +86,13 @@ library.add(
   faCircleXmark,
   faTriangleExclamation,
   faArrowUp,
+  faCoins,
+  faLock,
+  faLockOpen,
+  faBookOpen,
+  faXmark,
+  faCircleNotch,
+  faPaw,
 );
 
 const app = createApp(App);
