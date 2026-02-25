@@ -115,7 +115,14 @@ export const useBattleStore = defineStore("battle", () => {
 
     // Status conditions – can't stack
     if (defender.statusEffect) return;
-    const durations: Record<string, number> = { poison: 3, stun: 1, sleep: 2 };
+    const durations: Record<string, number> = {
+      poison: 3,
+      stun: 1,
+      sleep: 2,
+      burn: 3,
+      freeze: 3,
+      confusion: 3,
+    };
     defender.statusEffect = {
       type: type as StatusCondition["type"],
       turnsLeft: durations[type],
@@ -124,6 +131,9 @@ export const useBattleStore = defineStore("battle", () => {
       poison: "was poisoned",
       stun: "was stunned",
       sleep: "fell asleep",
+      burn: "was burned",
+      freeze: "was frozen solid",
+      confusion: "became confused",
     };
     addLog(`${defender.name} ${labels[type]}!`, type as BattleLogEntry["type"]);
   }
@@ -168,6 +178,63 @@ export const useBattleStore = defineStore("battle", () => {
         addLog(`${monster.name} woke up!`, "system");
       }
       return true;
+    }
+
+    if (status.type === "burn") {
+      const dmg = Math.max(1, Math.floor(monster.maxHP * 0.08));
+      monster.currentHP = Math.max(0, monster.currentHP - dmg);
+      addLog(`${monster.name} is hurt by its burn! (${dmg} dmg)`, "burn");
+      status.turnsLeft--;
+      if (status.turnsLeft <= 0) {
+        monster.statusEffect = null;
+        addLog(`${monster.name}'s burn faded!`, "system");
+      }
+      if (monster.currentHP <= 0) {
+        addLog(`${monster.name} fainted!`, "system");
+        phase.value = target === "player" ? "defeat" : "victory";
+      }
+      return false; // burn never skips the turn
+    }
+
+    if (status.type === "freeze") {
+      // 33% chance to thaw early each turn
+      if (Math.random() < 0.33) {
+        monster.statusEffect = null;
+        addLog(`${monster.name} thawed out!`, "system");
+        return false; // acts normally this turn
+      }
+      addLog(`${monster.name} is frozen solid!`, "freeze");
+      status.turnsLeft--;
+      if (status.turnsLeft <= 0) {
+        monster.statusEffect = null;
+        addLog(`${monster.name} gradually thawed out!`, "system");
+      }
+      return true; // skip turn
+    }
+
+    if (status.type === "confusion") {
+      status.turnsLeft--;
+      if (status.turnsLeft <= 0) {
+        monster.statusEffect = null;
+        addLog(`${monster.name} snapped out of confusion!`, "system");
+        return false; // acts normally on the turn they snap out
+      }
+      // 40% chance to hurt itself instead of acting
+      if (Math.random() < 0.4) {
+        const dmg = Math.max(1, Math.floor(monster.maxHP * 0.06));
+        monster.currentHP = Math.max(0, monster.currentHP - dmg);
+        addLog(
+          `${monster.name} hurt itself in confusion! (${dmg} dmg)`,
+          "confusion",
+        );
+        if (monster.currentHP <= 0) {
+          addLog(`${monster.name} fainted!`, "system");
+          phase.value = target === "player" ? "defeat" : "victory";
+        }
+        return true; // skip action
+      }
+      addLog(`${monster.name} is confused but pushed through!`, "confusion");
+      return false; // acts normally this turn
     }
 
     return false;
@@ -295,6 +362,9 @@ export const useBattleStore = defineStore("battle", () => {
     const isStab = move.element === attacker.element;
     const stabMultiplier = isStab ? 1.0 : STAB_PENALTY;
 
+    // Burn reduces attacker's physical/special output by 25%
+    const burnMult = attacker.statusEffect?.type === "burn" ? 0.75 : 1.0;
+
     const damage = Math.max(
       1,
       Math.floor(
@@ -305,7 +375,9 @@ export const useBattleStore = defineStore("battle", () => {
           multiplier,
           isCritical,
           defender.isGuarding,
-        ) * stabMultiplier,
+        ) *
+          stabMultiplier *
+          burnMult,
       ),
     );
 

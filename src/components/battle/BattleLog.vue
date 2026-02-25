@@ -24,6 +24,9 @@ const typeClasses: Record<string, string> = {
   poison: "text-green-400",
   stun: "text-yellow-300",
   sleep: "text-indigo-300",
+  burn: "text-orange-400",
+  freeze: "text-sky-300",
+  confusion: "text-fuchsia-400",
 };
 
 const typeIcons: Record<string, string> = {
@@ -38,6 +41,9 @@ const typeIcons: Record<string, string> = {
   poison: "skull",
   stun: "bolt",
   sleep: "moon",
+  burn: "fire",
+  freeze: "snowflake",
+  confusion: "brain",
 };
 
 watch(

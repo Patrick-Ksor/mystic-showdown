@@ -33,6 +33,9 @@ const effectMeta: Record<string, { label: string; color: string }> = {
   stun: { label: "STN", color: "#fde047" },
   sleep: { label: "SLP", color: "#a5b4fc" },
   heal: { label: "HEAL", color: "#34d399" },
+  burn: { label: "BRN", color: "#f97316" },
+  freeze: { label: "FRZ", color: "#7dd3fc" },
+  confusion: { label: "CNF", color: "#e879f9" },
 };
 
 const moveActions = computed(() =>

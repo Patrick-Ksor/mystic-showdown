@@ -188,7 +188,9 @@ export const MONSTERS: MonsterDefinition[] = [
       element: "fire",
       accuracy: 82,
       isSpecial: true,
-      description: "Erupts in a devastating explosion of superheated plasma.",
+      description:
+        "Erupts in a devastating explosion of superheated plasma. The intense heat may leave the target burned.",
+      effect: { type: "burn", chance: 30 },
     },
   },
   {
@@ -633,7 +635,9 @@ export const MONSTERS: MonsterDefinition[] = [
       element: "ice",
       accuracy: 84,
       isSpecial: true,
-      description: "Unleashes a freezing gale from its crystalline jaws.",
+      description:
+        "Unleashes a freezing gale from its crystalline jaws, locking the target in ice.",
+      effect: { type: "freeze", chance: 20 },
     },
   },
   {
@@ -972,8 +976,8 @@ export const MONSTERS: MonsterDefinition[] = [
       accuracy: 80,
       isSpecial: true,
       description:
-        "Assaults all senses with a psychic maelstrom. The mental overload may force the target into a deep, involuntary sleep.",
-      effect: { type: "sleep", chance: 25 },
+        "Assaults all senses with a psychic maelstrom. The mental chaos may leave the target hopelessly confused.",
+      effect: { type: "confusion", chance: 30 },
     },
   },
   {

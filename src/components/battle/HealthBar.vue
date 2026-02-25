@@ -60,6 +60,24 @@ const statusMeta = computed(() => {
       color: "#a5b4fc",
       bg: "rgb(67 56 202 / 0.35)",
     },
+    burn: {
+      label: "BRN",
+      icon: "fire",
+      color: "#f97316",
+      bg: "rgb(154 52 18 / 0.35)",
+    },
+    freeze: {
+      label: "FRZ",
+      icon: "snowflake",
+      color: "#7dd3fc",
+      bg: "rgb(7 89 133 / 0.35)",
+    },
+    confusion: {
+      label: "CNF",
+      icon: "brain",
+      color: "#e879f9",
+      bg: "rgb(112 26 117 / 0.35)",
+    },
   };
   return map[props.statusEffect.type] ?? null;
 });

@@ -45,6 +45,7 @@ import {
   faXmark,
   faCircleNotch,
   faPaw,
+  faMoon,
 } from "@fortawesome/free-solid-svg-icons";
 
 import router from "./router";
@@ -93,6 +94,7 @@ library.add(
   faXmark,
   faCircleNotch,
   faPaw,
+  faMoon,
 );
 
 const app = createApp(App);

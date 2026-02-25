@@ -16,6 +16,7 @@ export const TUTOR_MOVES: TutorMove[] = [
     crossTheme: "fire + shadow",
     description:
       "Ignites the target's life-force with cursed phantom flames. Burns from the inside out.",
+    effect: { type: "burn", chance: 30 },
   },
   {
     name: "Glacial Deluge",
@@ -65,7 +66,7 @@ export const TUTOR_MOVES: TutorMove[] = [
     crossTheme: "ice + psychic",
     description:
       "Projects a freezing psychic pulse that numbs both the body and mind of the target.",
-    effect: { type: "sleep", chance: 20 },
+    effect: { type: "freeze", chance: 20 },
   },
   {
     name: "Void Shroud",
@@ -115,7 +116,8 @@ export const TUTOR_MOVES: TutorMove[] = [
     cost: 90,
     crossTheme: "psychic + light",
     description:
-      "Floods the target's mind with blinding celestial light, overwhelming every sense.",
+      "Floods the target's mind with blinding celestial light, overwhelming every sense and leaving them deeply confused.",
+    effect: { type: "confusion", chance: 25 },
   },
   {
     name: "Arc Forge",

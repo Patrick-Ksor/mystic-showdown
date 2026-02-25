@@ -49,7 +49,7 @@ const NOT_EFFECTIVE: Record<ElementType, ElementType[]> = {
   metal: ["fire", "psychic", "toxic"],
   light: ["shadow", "metal"],
   toxic: ["earth", "wind", "psychic"],
-  void: ["shadow", "psychic", "light"],
+  void: [],
 };
 
 /**

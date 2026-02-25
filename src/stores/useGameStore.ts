@@ -6,6 +6,8 @@ const DIFFICULTY_KEY = "game_difficulty";
 const COINS_KEY = "game_coins";
 const TOTAL_XP_KEY = "game_totalXP";
 const PLAYER_LEVEL_KEY = "game_playerLevel";
+const WINS_KEY = "game_wins";
+const LOSSES_KEY = "game_losses";
 
 export const useGameStore = defineStore("game", () => {
   const totalXP = ref<number>(
@@ -14,8 +16,10 @@ export const useGameStore = defineStore("game", () => {
   const playerLevel = ref<number>(
     parseInt(localStorage.getItem(PLAYER_LEVEL_KEY) ?? "1", 10),
   );
-  const wins = ref(0);
-  const losses = ref(0);
+  const wins = ref<number>(parseInt(localStorage.getItem(WINS_KEY) ?? "0", 10));
+  const losses = ref<number>(
+    parseInt(localStorage.getItem(LOSSES_KEY) ?? "0", 10),
+  );
   const difficulty = ref<DifficultyTier>(
     (localStorage.getItem(DIFFICULTY_KEY) as DifficultyTier) ?? "normal",
   );
@@ -29,6 +33,8 @@ export const useGameStore = defineStore("game", () => {
   watch(playerLevel, (val) =>
     localStorage.setItem(PLAYER_LEVEL_KEY, String(val)),
   );
+  watch(wins, (val) => localStorage.setItem(WINS_KEY, String(val)));
+  watch(losses, (val) => localStorage.setItem(LOSSES_KEY, String(val)));
 
   const XP_PER_LEVEL = 100;
 
@@ -99,6 +105,8 @@ export const useGameStore = defineStore("game", () => {
     losses.value = 0;
     localStorage.removeItem(TOTAL_XP_KEY);
     localStorage.removeItem(PLAYER_LEVEL_KEY);
+    localStorage.removeItem(WINS_KEY);
+    localStorage.removeItem(LOSSES_KEY);
   }
 
   return {

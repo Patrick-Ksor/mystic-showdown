@@ -28,7 +28,7 @@ export const ELEMENT_ICONS: Record<ElementType, string> = {
   metal: "gears",
   light: "sun",
   toxic: "biohazard",
-  void: "circle-notch",
+  void: "moon",
 };
 
 export const ELEMENT_COLORS: Record<ElementType, string> = {
@@ -57,7 +57,14 @@ export const ACTION_ICONS: Record<ActionType, string> = {
 };
 
 // ─── Move Effects ────────────────────────────────────────────
-export type MoveEffectType = "heal" | "poison" | "stun" | "sleep";
+export type MoveEffectType =
+  | "heal"
+  | "poison"
+  | "stun"
+  | "sleep"
+  | "burn"
+  | "freeze"
+  | "confusion";
 
 export interface MoveEffect {
   type: MoveEffectType;
@@ -77,7 +84,7 @@ export interface TutorMove extends Move {
 
 // ─── Status Conditions ───────────────────────────────────────
 export interface StatusCondition {
-  type: "poison" | "stun" | "sleep";
+  type: "poison" | "stun" | "sleep" | "burn" | "freeze" | "confusion";
   turnsLeft: number;
 }
 
@@ -159,7 +166,10 @@ export type LogEntryType =
   | "heal"
   | "poison"
   | "stun"
-  | "sleep";
+  | "sleep"
+  | "burn"
+  | "freeze"
+  | "confusion";
 
 export interface BattleLogEntry {
   id: number;

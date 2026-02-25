@@ -368,7 +368,8 @@ function rematch() {
             Tournament Complete
           </p>
           <p class="text-white/60 text-xs">
-            All 24 monsters unlocked &mdash; free play is now active!
+            All {{ MONSTERS.length }} monsters unlocked &mdash; free play is now
+            active!
           </p>
         </div>
 

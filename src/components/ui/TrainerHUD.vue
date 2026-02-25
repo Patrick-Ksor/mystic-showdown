@@ -37,5 +37,20 @@ const xpPercent = computed(
         {{ xpInLevel }}/{{ gameStore.XP_PER_LEVEL }}
       </span>
     </div>
+
+    <!-- Win / Loss record -->
+    <div class="flex items-center gap-2 pt-0.5 border-t border-white/10 mt-0.5">
+      <span class="text-green-400 text-[10px] font-semibold">
+        <font-awesome-icon
+          :icon="['fas', 'trophy']"
+          class="mr-0.5 text-[9px]"
+        />
+        {{ gameStore.wins }}W
+      </span>
+      <span class="text-white/20 text-[10px]">/</span>
+      <span class="text-red-400 text-[10px] font-semibold">
+        {{ gameStore.losses }}L
+      </span>
+    </div>
   </div>
 </template>

@@ -1,8 +1,21 @@
 /**
  * Web Audio API synthesizer — generates all game sounds procedurally.
- * No audio files needed!
+ * Uses useSoundEngine.ts for reusable synthesis primitives.
+ * No audio files needed.
  */
 import { ref } from "vue";
+import {
+  adsr,
+  chord,
+  freqRamp,
+  lfo,
+  makeDistortion,
+  osc,
+  out,
+  seq,
+  whiteNoise,
+  type AdsrOpts,
+} from "@/composables/useSoundEngine";
 
 let audioCtx: AudioContext | null = null;
 const isMuted = ref(false);
@@ -11,336 +24,1241 @@ function getCtx(): AudioContext {
   if (!audioCtx) {
     audioCtx = new AudioContext();
   }
-  // Resume if suspended (browser autoplay policy)
   if (audioCtx.state === "suspended") {
     void audioCtx.resume();
   }
   return audioCtx;
 }
 
-function masterGain(ctx: AudioContext, volume = 0.35): GainNode {
-  const g = ctx.createGain();
-  g.gain.value = isMuted.value ? 0 : volume;
-  g.connect(ctx.destination);
-  return g;
+/** Returns 0 when muted, else the given volume. */
+function v(volume: number): number {
+  return isMuted.value ? 0 : volume;
 }
 
-// ─── Primitive helpers ──────────────────────────────────────
+// Shared ADSR presets
+const SNAPPY: AdsrOpts = {
+  attack: 0.008,
+  decay: 0.04,
+  sustain: 0.0,
+  release: 0.0,
+  peak: 1,
+};
+const PLUCK: AdsrOpts = {
+  attack: 0.005,
+  decay: 0.12,
+  sustain: 0.1,
+  release: 0.12,
+  peak: 1,
+};
 
-function playTone(
-  freq: number,
-  duration: number,
-  type: OscillatorType = "square",
-  volume = 0.3,
-  detune = 0,
-) {
-  const ctx = getCtx();
-  const osc = ctx.createOscillator();
-  const gain = masterGain(ctx, volume);
+// ─── UI Sounds ──────────────────────────────────────────────
 
-  osc.type = type;
-  osc.frequency.value = freq;
-  osc.detune.value = detune;
-
-  // Envelope: quick attack, sustain, decay
-  gain.gain.setValueAtTime(0, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(
-    isMuted.value ? 0 : volume,
-    ctx.currentTime + 0.01,
-  );
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-
-  osc.connect(gain);
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + duration);
-}
-
-function playNoise(duration: number, volume = 0.15) {
-  const ctx = getCtx();
-  const bufferSize = ctx.sampleRate * duration;
-  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = Math.random() * 2 - 1;
-  }
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-
-  // Bandpass for more interesting noise
-  const filter = ctx.createBiquadFilter();
-  filter.type = "bandpass";
-  filter.frequency.value = 1000;
-  filter.Q.value = 0.5;
-
-  const gain = masterGain(ctx, volume);
-  gain.gain.setValueAtTime(isMuted.value ? 0 : volume, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-
-  source.connect(filter);
-  filter.connect(gain);
-  source.start(ctx.currentTime);
-  source.stop(ctx.currentTime + duration);
-}
-
-// ─── Sound Effects ──────────────────────────────────────────
-
-/** Quick "boop" for UI selections */
+/** Two-tone boop for hovering/selecting, now a mini chord with vibrato. */
 function playSelect() {
-  playTone(660, 0.08, "square", 0.2);
-  setTimeout(() => playTone(880, 0.08, "square", 0.15), 40);
+  const ctx = getCtx();
+
+  // First boop — root + 4th + octave chord
+  const g1 = out(ctx, 1);
+  adsr(g1.gain, ctx, { ...PLUCK, peak: v(0.18) }, 0.06);
+  chord(ctx, [660, 880, 1320], "square", g1, 0, 0.18);
+
+  // Second boop, slight rising pitch
+  const g2 = out(ctx, 1);
+  adsr(g2.gain, ctx, { ...PLUCK, peak: v(0.15) }, 0.06, 0.05);
+  chord(ctx, [880, 1100, 1760], "square", g2, 0.05, 0.24);
 }
 
-/** Confirming button press */
+/** Confirming a button press — three-note arpeggio with harmonic layer. */
 function playConfirm() {
-  playTone(523, 0.1, "square", 0.2);
-  setTimeout(() => playTone(659, 0.08, "square", 0.2), 60);
-  setTimeout(() => playTone(784, 0.12, "square", 0.25), 130);
+  const ctx = getCtx();
+  const notes = [523, 659, 784]; // C5, E5, G5
+  const thirds = [659, 831, 988]; // major 3rd above each
+
+  seq(
+    notes.map((freq, i) => () => {
+      const dur = i === notes.length - 1 ? 0.22 : 0.14;
+      const g = out(ctx, 1);
+      adsr(g.gain, ctx, { ...PLUCK, peak: v(0.2) }, dur);
+      osc(
+        ctx,
+        { type: "square", freq, stopOffset: ctx.currentTime + dur + 0.06 },
+        g,
+      );
+
+      const gh = out(ctx, 1);
+      adsr(gh.gain, ctx, { ...PLUCK, peak: v(0.08) }, dur);
+      osc(
+        ctx,
+        {
+          type: "square",
+          freq: thirds[i],
+          stopOffset: ctx.currentTime + dur + 0.06,
+        },
+        gh,
+      );
+    }),
+    65,
+  );
 }
 
-/** Attack launch — whoosh sound when initiating an attack */
+/** Attack launch — detuned saw sweep at root+5th, vibrato kick, bandpass noise. */
 function playAttackLaunch() {
   const ctx = getCtx();
-  const osc = ctx.createOscillator();
-  const gain = masterGain(ctx, 0.2);
 
-  osc.type = "sawtooth";
-  osc.frequency.setValueAtTime(200, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.12);
-
-  gain.gain.setValueAtTime(0, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(
-    isMuted.value ? 0 : 0.2,
-    ctx.currentTime + 0.02,
+  const gSweep = out(ctx, 1);
+  adsr(
+    gSweep.gain,
+    ctx,
+    { attack: 0.02, decay: 0.05, sustain: 0.5, release: 0.12, peak: v(0.2) },
+    0.12,
   );
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
 
-  osc.connect(gain);
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + 0.2);
+  const rootOsc = osc(
+    ctx,
+    { type: "sawtooth", freq: 200, stopOffset: ctx.currentTime + 0.22 },
+    gSweep,
+  );
+  const fifthOsc = osc(
+    ctx,
+    {
+      type: "sawtooth",
+      freq: 300,
+      detune: 4,
+      stopOffset: ctx.currentTime + 0.22,
+    },
+    gSweep,
+  );
+  freqRamp(rootOsc, ctx, 200, 620, 0.14);
+  freqRamp(fifthOsc, ctx, 300, 930, 0.14);
+  lfo(ctx, rootOsc.frequency, 8, 18, { stopOffset: ctx.currentTime + 0.22 });
 
-  playNoise(0.1, 0.12);
+  const gn = out(ctx, 1);
+  adsr(
+    gn.gain,
+    ctx,
+    { attack: 0.005, decay: 0.08, sustain: 0, release: 0, peak: v(0.14) },
+    0.02,
+  );
+  whiteNoise(ctx, 0.12, gn, {
+    filterType: "bandpass",
+    filterFreq: 900,
+    filterQ: 1.2,
+  });
+
+  void fifthOsc;
 }
 
-/** Generic attack hit — punchy noise burst */
-function playAttackHit() {
-  playNoise(0.15, 0.25);
-  playTone(180, 0.12, "sawtooth", 0.3);
-  setTimeout(() => playTone(100, 0.15, "sawtooth", 0.2), 50);
+/**
+ * Attack hit sound.
+ * Physical: low punch — sub bass + lowpass noise.
+ * Special:  shimmer cascade — high sine layers + sparkle noise.
+ */
+function playAttackHit(isSpecial = false) {
+  const ctx = getCtx();
+
+  if (!isSpecial) {
+    const gBass = out(ctx, 1);
+    adsr(
+      gBass.gain,
+      ctx,
+      { attack: 0.004, decay: 0.12, sustain: 0, release: 0, peak: v(0.32) },
+      0.01,
+    );
+    const bassOsc = osc(
+      ctx,
+      { type: "sine", freq: 120, stopOffset: ctx.currentTime + 0.18 },
+      gBass,
+    );
+    freqRamp(bassOsc, ctx, 120, 40, 0.15);
+
+    const gMid = out(ctx, 1);
+    adsr(
+      gMid.gain,
+      ctx,
+      { attack: 0.003, decay: 0.07, sustain: 0, release: 0, peak: v(0.28) },
+      0.01,
+    );
+    const midOsc = osc(
+      ctx,
+      { type: "sawtooth", freq: 200, stopOffset: ctx.currentTime + 0.12 },
+      gMid,
+    );
+    freqRamp(midOsc, ctx, 200, 80, 0.1);
+
+    const gn = out(ctx, 1);
+    adsr(
+      gn.gain,
+      ctx,
+      { attack: 0.002, decay: 0.1, sustain: 0, release: 0, peak: v(0.3) },
+      0.01,
+    );
+    whiteNoise(ctx, 0.15, gn, {
+      filterType: "lowpass",
+      filterFreq: 400,
+      filterQ: 0.8,
+    });
+  } else {
+    const freqs = [800, 1200, 1600];
+    seq(
+      freqs.map((freq) => () => {
+        const gs = out(ctx, 1);
+        adsr(
+          gs.gain,
+          ctx,
+          {
+            attack: 0.005,
+            decay: 0.1,
+            sustain: 0.1,
+            release: 0.12,
+            peak: v(0.2),
+          },
+          0.08,
+        );
+        osc(
+          ctx,
+          { type: "sine", freq, stopOffset: ctx.currentTime + 0.25 },
+          gs,
+        );
+      }),
+      45,
+    );
+    const gn = out(ctx, 1);
+    adsr(
+      gn.gain,
+      ctx,
+      { attack: 0.005, decay: 0.12, sustain: 0, release: 0, peak: v(0.18) },
+      0.02,
+    );
+    whiteNoise(ctx, 0.18, gn, {
+      filterType: "highpass",
+      filterFreq: 2500,
+      filterQ: 1,
+    });
+  }
 }
 
-/** Attack miss — a light whoosh that fades to nothing */
+/** Attack miss — descending sine with vibrato wobble. */
 function playMiss() {
   const ctx = getCtx();
-  const osc = ctx.createOscillator();
-  const gain = masterGain(ctx, 0.15);
 
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(500, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.2);
-
-  gain.gain.setValueAtTime(0, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(
-    isMuted.value ? 0 : 0.15,
-    ctx.currentTime + 0.02,
+  const gm = out(ctx, 1);
+  adsr(
+    gm.gain,
+    ctx,
+    { attack: 0.015, decay: 0.05, sustain: 0.5, release: 0.18, peak: v(0.15) },
+    0.15,
   );
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+  const missOsc = osc(
+    ctx,
+    { type: "sine", freq: 500, stopOffset: ctx.currentTime + 0.38 },
+    gm,
+  );
+  freqRamp(missOsc, ctx, 500, 150, 0.22);
+  lfo(ctx, missOsc.frequency, 6, 28, { stopOffset: ctx.currentTime + 0.38 });
 
-  osc.connect(gain);
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + 0.3);
-
-  playNoise(0.12, 0.08);
+  const gn = out(ctx, 1);
+  adsr(
+    gn.gain,
+    ctx,
+    { attack: 0.01, decay: 0.1, sustain: 0, release: 0, peak: v(0.07) },
+    0.01,
+  );
+  whiteNoise(ctx, 0.14, gn, {
+    filterType: "bandpass",
+    filterFreq: 600,
+    filterQ: 0.6,
+  });
 }
 
-/** Critical hit — sharper, louder, with a high ping */
+/** Critical hit — distorted crunch + bass punch + double high ping. */
 function playCriticalHit() {
-  playNoise(0.2, 0.35);
-  playTone(150, 0.15, "sawtooth", 0.35);
+  const ctx = getCtx();
+
+  const dist = makeDistortion(ctx, 280);
+  dist.connect(ctx.destination);
+  const gCrunch = ctx.createGain();
+  gCrunch.gain.value = 0;
+  adsr(
+    gCrunch.gain,
+    ctx,
+    { attack: 0.003, decay: 0.08, sustain: 0, release: 0, peak: v(0.25) },
+    0.015,
+  );
+  gCrunch.connect(dist);
+  const crunchOsc = osc(
+    ctx,
+    { type: "sawtooth", freq: 140, stopOffset: ctx.currentTime + 0.18 },
+    gCrunch,
+  );
+  freqRamp(crunchOsc, ctx, 140, 60, 0.12);
+
+  const gBass = out(ctx, 1);
+  adsr(
+    gBass.gain,
+    ctx,
+    { attack: 0.002, decay: 0.15, sustain: 0, release: 0, peak: v(0.3) },
+    0.01,
+  );
+  const bassOsc = osc(
+    ctx,
+    { type: "sine", freq: 80, stopOffset: ctx.currentTime + 0.22 },
+    gBass,
+  );
+  freqRamp(bassOsc, ctx, 80, 30, 0.18);
+
+  const gn = out(ctx, 1);
+  adsr(
+    gn.gain,
+    ctx,
+    { attack: 0.002, decay: 0.1, sustain: 0, release: 0, peak: v(0.35) },
+    0.01,
+  );
+  whiteNoise(ctx, 0.18, gn, {
+    filterType: "bandpass",
+    filterFreq: 1800,
+    filterQ: 0.8,
+  });
+
   setTimeout(() => {
-    playTone(1200, 0.12, "sine", 0.25);
-    playTone(1500, 0.08, "sine", 0.2);
+    const gp = out(ctx, 1);
+    adsr(
+      gp.gain,
+      ctx,
+      {
+        attack: 0.003,
+        decay: 0.08,
+        sustain: 0.1,
+        release: 0.15,
+        peak: v(0.22),
+      },
+      0.08,
+    );
+    chord(ctx, [1200, 1500], "sine", gp, 0, 0.35);
   }, 80);
-  setTimeout(() => playTone(80, 0.2, "sawtooth", 0.25), 50);
+
+  void crunchOsc;
 }
 
-/** Guard/shield activation — rising shimmer */
+/** Guard — C4-E4-G4 triangle chord with fast tremolo. */
 function playGuard() {
-  playTone(400, 0.15, "triangle", 0.2);
-  setTimeout(() => playTone(600, 0.15, "triangle", 0.2), 80);
-  setTimeout(() => playTone(800, 0.1, "triangle", 0.15), 160);
+  const ctx = getCtx();
+
+  const gg = out(ctx, 1);
+  adsr(
+    gg.gain,
+    ctx,
+    { attack: 0.015, decay: 0.06, sustain: 0.7, release: 0.22, peak: v(0.2) },
+    0.2,
+  );
+  chord(ctx, [262, 330, 392], "triangle", gg, 0, 0.5);
+  lfo(ctx, gg.gain, 9, v(0.06), { stopOffset: ctx.currentTime + 0.55 });
 }
 
-/** Battle start whoosh — rising sweep */
+/** Battle start — unison detuned saw sweep + kick pattern. */
 function playBattleStart() {
   const ctx = getCtx();
-  const osc = ctx.createOscillator();
-  const gain = masterGain(ctx, 0.25);
 
-  osc.type = "sawtooth";
-  osc.frequency.setValueAtTime(100, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.4);
-
-  gain.gain.setValueAtTime(0, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(
-    isMuted.value ? 0 : 0.25,
-    ctx.currentTime + 0.05,
+  const gSweep = out(ctx, 1);
+  adsr(
+    gSweep.gain,
+    ctx,
+    { attack: 0.05, decay: 0.1, sustain: 0.7, release: 0.25, peak: v(0.22) },
+    0.38,
   );
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
 
-  osc.connect(gain);
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + 0.5);
+  const detunes = [-8, 0, 8];
+  const sweepOscs = detunes.map((d) => {
+    const o = osc(
+      ctx,
+      {
+        type: "sawtooth",
+        freq: 100,
+        detune: d,
+        stopOffset: ctx.currentTime + 0.65,
+      },
+      gSweep,
+    );
+    freqRamp(o, ctx, 100, 800, 0.4);
+    return o;
+  });
 
-  // Accent chime
-  setTimeout(() => {
-    playTone(523, 0.15, "square", 0.15);
-    playTone(784, 0.15, "square", 0.1);
-  }, 350);
+  seq(
+    [523, 523, 784].map((freq) => () => {
+      const gk = out(ctx, 1);
+      adsr(gk.gain, ctx, { ...SNAPPY, peak: v(0.18) }, 0.05);
+      osc(
+        ctx,
+        { type: "square", freq, stopOffset: ctx.currentTime + 0.15 },
+        gk,
+      );
+    }),
+    110,
+    300,
+  );
+
+  const gn = out(ctx, 1);
+  adsr(
+    gn.gain,
+    ctx,
+    { attack: 0.01, decay: 0.15, sustain: 0, release: 0, peak: v(0.12) },
+    0.02,
+    0.35,
+  );
+  whiteNoise(ctx, 0.2, gn, {
+    filterType: "bandpass",
+    filterFreq: 1200,
+    filterQ: 1.5,
+    startOffset: 0.35,
+  });
+
+  void sweepOscs;
 }
 
-/** Victory fanfare — triumphant ascending notes */
+/** Victory fanfare — C5-E5-G5-C6 arpeggio with parallel major-3rd harmony. */
 function playVictory() {
-  const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
-  notes.forEach((freq, i) => {
-    setTimeout(() => playTone(freq, 0.25, "square", 0.2), i * 120);
-  });
-  // Bright shimmer at the end
-  setTimeout(() => {
-    playTone(1047, 0.4, "sine", 0.15);
-    playTone(1319, 0.4, "sine", 0.1);
-  }, notes.length * 120);
+  const ctx = getCtx();
+  const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
+  const harmony = [659, 831, 988, 1319]; // E5 Ab5 B5 E6
+
+  seq(
+    notes.map((freq, i) => () => {
+      const dur = i === notes.length - 1 ? 0.4 : 0.22;
+      const gv = out(ctx, 1);
+      adsr(gv.gain, ctx, { ...PLUCK, peak: v(0.2) }, dur);
+      osc(
+        ctx,
+        { type: "square", freq, stopOffset: ctx.currentTime + dur + 0.15 },
+        gv,
+      );
+
+      const gh = out(ctx, 1);
+      adsr(gh.gain, ctx, { ...PLUCK, peak: v(0.08) }, dur);
+      osc(
+        ctx,
+        {
+          type: "square",
+          freq: harmony[i],
+          stopOffset: ctx.currentTime + dur + 0.15,
+        },
+        gh,
+      );
+    }),
+    120,
+  );
+
+  setTimeout(
+    () => {
+      const gs = out(ctx, 1);
+      adsr(
+        gs.gain,
+        ctx,
+        { attack: 0.02, decay: 0.1, sustain: 0.3, release: 0.4, peak: v(0.12) },
+        0.25,
+      );
+      chord(ctx, [1047, 1319], "sine", gs, 0, 0.75);
+    },
+    notes.length * 120 + 20,
+  );
 }
 
-/** Defeat — descending chromatic sadness */
+/** Defeat — minor chord descent with slow tremolo rumble. */
 function playDefeat() {
-  const notes = [440, 415, 392, 349]; // A4, Ab4, G4, F4
-  notes.forEach((freq, i) => {
-    setTimeout(() => playTone(freq, 0.3, "triangle", 0.2), i * 180);
-  });
-  // Low rumble
-  setTimeout(() => playTone(80, 0.5, "sawtooth", 0.15), 600);
+  const ctx = getCtx();
+  const steps = [
+    [440, 523, 659], // Am
+    [392, 494, 587], // Gm
+    [349, 440, 523], // Fm
+    [330, 415, 494], // Em
+  ] as const;
+
+  seq(
+    steps.map((freqs) => () => {
+      const gd = out(ctx, 1);
+      adsr(
+        gd.gain,
+        ctx,
+        { attack: 0.02, decay: 0.1, sustain: 0.5, release: 0.3, peak: v(0.15) },
+        0.22,
+      );
+      chord(ctx, [...freqs], "triangle", gd, 0, 0.65);
+      lfo(ctx, gd.gain, 3, v(0.04), { stopOffset: ctx.currentTime + 0.7 });
+    }),
+    185,
+  );
+
+  setTimeout(() => {
+    const gr = out(ctx, 1);
+    adsr(
+      gr.gain,
+      ctx,
+      { attack: 0.05, decay: 0.1, sustain: 0.6, release: 0.5, peak: v(0.14) },
+      0.3,
+    );
+    const rumbleOsc = osc(
+      ctx,
+      { type: "sawtooth", freq: 55, stopOffset: ctx.currentTime + 0.95 },
+      gr,
+    );
+    lfo(ctx, rumbleOsc.frequency, 2.5, 8, {
+      stopOffset: ctx.currentTime + 0.95,
+    });
+  }, 650);
 }
 
-/** Monster faint — descending wobble */
+/** Monster faint — slow vibrato descent + sub-sine layer. */
 function playFaint() {
   const ctx = getCtx();
-  const osc = ctx.createOscillator();
-  const gain = masterGain(ctx, 0.2);
 
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(600, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.6);
+  const gf = out(ctx, 1);
+  adsr(
+    gf.gain,
+    ctx,
+    { attack: 0.01, decay: 0.05, sustain: 0.8, release: 0.35, peak: v(0.2) },
+    0.45,
+  );
+  const faintOsc = osc(
+    ctx,
+    { type: "sine", freq: 600, stopOffset: ctx.currentTime + 0.85 },
+    gf,
+  );
+  freqRamp(faintOsc, ctx, 600, 80, 0.65);
+  lfo(ctx, faintOsc.frequency, 5, 22, { stopOffset: ctx.currentTime + 0.85 });
 
-  gain.gain.setValueAtTime(isMuted.value ? 0 : 0.2, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+  const gsub = out(ctx, 1);
+  adsr(
+    gsub.gain,
+    ctx,
+    { attack: 0.01, decay: 0.05, sustain: 0.6, release: 0.4, peak: v(0.1) },
+    0.4,
+  );
+  const subOsc = osc(
+    ctx,
+    { type: "sine", freq: 300, stopOffset: ctx.currentTime + 0.85 },
+    gsub,
+  );
+  freqRamp(subOsc, ctx, 300, 40, 0.65);
 
-  osc.connect(gain);
-  osc.start(ctx.currentTime);
-  osc.stop(ctx.currentTime + 0.7);
+  void subOsc;
 }
 
-/** Escape/run — quick descending notes */
+/** Run/escape — smooth portamento sweep + noise tail. */
 function playRun() {
-  const notes = [800, 600, 400, 250];
-  notes.forEach((freq, i) => {
-    setTimeout(() => playTone(freq, 0.08, "square", 0.15), i * 50);
+  const ctx = getCtx();
+
+  const gr = out(ctx, 1);
+  adsr(
+    gr.gain,
+    ctx,
+    { attack: 0.01, decay: 0.05, sustain: 0.5, release: 0.18, peak: v(0.18) },
+    0.18,
+  );
+  const runOsc = osc(
+    ctx,
+    { type: "square", freq: 800, stopOffset: ctx.currentTime + 0.38 },
+    gr,
+  );
+  freqRamp(runOsc, ctx, 800, 200, 0.28);
+
+  const gn = out(ctx, 1);
+  adsr(
+    gn.gain,
+    ctx,
+    { attack: 0.005, decay: 0.12, sustain: 0, release: 0, peak: v(0.1) },
+    0.01,
+    0.08,
+  );
+  whiteNoise(ctx, 0.2, gn, {
+    filterType: "bandpass",
+    filterFreq: 500,
+    filterQ: 0.8,
+    startOffset: 0.08,
   });
 }
 
-/** XP gain tick sound */
+/** XP tick — ultra-tight ADSR ping. */
 function playXPTick() {
-  playTone(1200, 0.04, "sine", 0.1);
+  const ctx = getCtx();
+  const gx = out(ctx, 1);
+  adsr(
+    gx.gain,
+    ctx,
+    { attack: 0.002, decay: 0.03, sustain: 0, release: 0, peak: v(0.12) },
+    0.005,
+  );
+  osc(
+    ctx,
+    { type: "sine", freq: 1200, stopOffset: ctx.currentTime + 0.06 },
+    gx,
+  );
 }
 
-/** Level up — bright ascending arpeggio */
+/** Level up — ADSR arpeggio with vibrato on the top note. */
 function playLevelUp() {
+  const ctx = getCtx();
   const notes = [523, 659, 784, 1047, 1319]; // C5 E5 G5 C6 E6
-  notes.forEach((freq, i) => {
-    setTimeout(() => {
-      playTone(freq, 0.2, "square", 0.18);
-      playTone(freq * 1.5, 0.15, "sine", 0.08); // harmony
-    }, i * 100);
-  });
+  const harmony = [659, 831, 988, 1319, 1661];
+
+  seq(
+    notes.map((freq, i) => () => {
+      const dur = i === notes.length - 1 ? 0.35 : 0.16;
+      const gl = out(ctx, 1);
+      adsr(gl.gain, ctx, { ...PLUCK, peak: v(0.18) }, dur);
+      const mainOsc = osc(
+        ctx,
+        { type: "square", freq, stopOffset: ctx.currentTime + dur + 0.2 },
+        gl,
+      );
+
+      if (i === notes.length - 1) {
+        lfo(ctx, mainOsc.frequency, 6, 30, {
+          startOffset: 0.08,
+          stopOffset: ctx.currentTime + dur + 0.2,
+        });
+      }
+
+      const gh = out(ctx, 1);
+      adsr(gh.gain, ctx, { ...PLUCK, peak: v(0.07) }, dur);
+      osc(
+        ctx,
+        {
+          type: "sine",
+          freq: harmony[i],
+          stopOffset: ctx.currentTime + dur + 0.2,
+        },
+        gh,
+      );
+    }),
+    100,
+  );
 }
 
-/** Enemy turn approaching — ominous low pulse */
+/** Enemy turn signal — ominous low double pulse with noise fill. */
 function playEnemyTurn() {
-  playTone(120, 0.25, "sawtooth", 0.15);
-  setTimeout(() => playTone(100, 0.2, "sawtooth", 0.12), 150);
+  const ctx = getCtx();
+
+  seq(
+    [120, 100, 90].map((freq) => () => {
+      const ge = out(ctx, 1);
+      adsr(
+        ge.gain,
+        ctx,
+        { attack: 0.01, decay: 0.12, sustain: 0, release: 0, peak: v(0.16) },
+        0.05,
+      );
+      osc(
+        ctx,
+        { type: "sawtooth", freq, stopOffset: ctx.currentTime + 0.22 },
+        ge,
+      );
+
+      const gn = out(ctx, 1);
+      adsr(
+        gn.gain,
+        ctx,
+        { attack: 0.005, decay: 0.1, sustain: 0, release: 0, peak: v(0.07) },
+        0.01,
+      );
+      whiteNoise(ctx, 0.1, gn, {
+        filterType: "bandpass",
+        filterFreq: 250,
+        filterQ: 2,
+      });
+    }),
+    160,
+  );
 }
 
-/** Element-specific attack sound accents */
-function playElementAccent(element: string) {
+// ─── Element Accents ────────────────────────────────────────
+
+/**
+ * Element-flavoured attack accent.
+ * If `secondary` is provided, a softer version of that element plays after a brief delay.
+ */
+function playElementAccent(element: string, secondary?: string) {
+  const ctx = getCtx();
+  _playElementOnce(ctx, element, 1.0);
+
+  if (secondary && secondary !== element) {
+    setTimeout(() => {
+      const ctx2 = getCtx();
+      _playElementOnce(ctx2, secondary, 0.45);
+    }, 90);
+  }
+}
+
+function _playElementOnce(
+  ctx: AudioContext,
+  element: string,
+  volScale: number,
+) {
+  const vv = (base: number) => v(base * volScale);
+
   switch (element) {
-    case "fire":
-      playNoise(0.2, 0.2);
-      playTone(300, 0.15, "sawtooth", 0.2);
+    case "fire": {
+      const gf = out(ctx, 1);
+      adsr(
+        gf.gain,
+        ctx,
+        {
+          attack: 0.008,
+          decay: 0.14,
+          sustain: 0.15,
+          release: 0.18,
+          peak: vv(0.22),
+        },
+        0.1,
+      );
+      whiteNoise(ctx, 0.28, gf, {
+        filterType: "bandpass",
+        filterFreq: 800,
+        filterQ: 0.7,
+      });
+      const gf2 = out(ctx, 1);
+      adsr(
+        gf2.gain,
+        ctx,
+        { attack: 0.005, decay: 0.12, sustain: 0, release: 0, peak: vv(0.18) },
+        0.02,
+      );
+      const fireOsc = osc(
+        ctx,
+        { type: "sawtooth", freq: 300, stopOffset: ctx.currentTime + 0.22 },
+        gf2,
+      );
+      freqRamp(fireOsc, ctx, 300, 150, 0.18);
       break;
-    case "water":
-      playTone(400, 0.2, "sine", 0.2);
-      setTimeout(() => playTone(500, 0.15, "sine", 0.15), 60);
-      setTimeout(() => playTone(350, 0.12, "sine", 0.1), 120);
+    }
+    case "water": {
+      const gw = out(ctx, 1);
+      adsr(
+        gw.gain,
+        ctx,
+        {
+          attack: 0.02,
+          decay: 0.08,
+          sustain: 0.5,
+          release: 0.25,
+          peak: vv(0.2),
+        },
+        0.18,
+      );
+      const w1 = osc(
+        ctx,
+        { type: "sine", freq: 400, stopOffset: ctx.currentTime + 0.45 },
+        gw,
+      );
+      const w2 = osc(
+        ctx,
+        {
+          type: "sine",
+          freq: 500,
+          detune: -5,
+          stopOffset: ctx.currentTime + 0.38,
+        },
+        gw,
+      );
+      freqRamp(w1, ctx, 400, 350, 0.22);
+      freqRamp(w2, ctx, 500, 300, 0.22);
+      lfo(ctx, w1.frequency, 4, 12, { stopOffset: ctx.currentTime + 0.45 });
+      const gn = out(ctx, 1);
+      adsr(
+        gn.gain,
+        ctx,
+        { attack: 0.01, decay: 0.2, sustain: 0, release: 0, peak: vv(0.08) },
+        0.01,
+      );
+      whiteNoise(ctx, 0.25, gn, {
+        filterType: "bandpass",
+        filterFreq: 600,
+        filterQ: 2,
+      });
+      void w2;
       break;
-    case "electric":
-      playTone(2000, 0.05, "square", 0.2);
-      setTimeout(() => playTone(1500, 0.05, "square", 0.2), 30);
-      setTimeout(() => playNoise(0.08, 0.15), 60);
+    }
+    case "electric": {
+      const ge = out(ctx, 1);
+      adsr(
+        ge.gain,
+        ctx,
+        { attack: 0.003, decay: 0.05, sustain: 0, release: 0, peak: vv(0.22) },
+        0.01,
+      );
+      chord(ctx, [2000, 1500, 3000], "square", ge, 0, 0.12);
+      const gn = out(ctx, 1);
+      adsr(
+        gn.gain,
+        ctx,
+        { attack: 0.003, decay: 0.08, sustain: 0, release: 0, peak: vv(0.2) },
+        0.01,
+      );
+      whiteNoise(ctx, 0.12, gn, {
+        filterType: "bandpass",
+        filterFreq: 3500,
+        filterQ: 0.5,
+      });
+      setTimeout(() => {
+        const ge2 = out(ctx, 1);
+        adsr(
+          ge2.gain,
+          ctx,
+          {
+            attack: 0.002,
+            decay: 0.05,
+            sustain: 0,
+            release: 0,
+            peak: vv(0.18),
+          },
+          0.01,
+        );
+        chord(ctx, [1800, 2400], "square", ge2, 0, 0.1);
+      }, 55);
       break;
-    case "earth":
-      playTone(80, 0.3, "sawtooth", 0.25);
-      playNoise(0.15, 0.15);
+    }
+    case "earth": {
+      const gearth = out(ctx, 1);
+      adsr(
+        gearth.gain,
+        ctx,
+        {
+          attack: 0.005,
+          decay: 0.18,
+          sustain: 0.1,
+          release: 0.25,
+          peak: vv(0.28),
+        },
+        0.1,
+      );
+      const earthOsc = osc(
+        ctx,
+        { type: "sawtooth", freq: 80, stopOffset: ctx.currentTime + 0.45 },
+        gearth,
+      );
+      freqRamp(earthOsc, ctx, 80, 40, 0.2);
+      const gn = out(ctx, 1);
+      adsr(
+        gn.gain,
+        ctx,
+        { attack: 0.005, decay: 0.15, sustain: 0, release: 0, peak: vv(0.2) },
+        0.01,
+      );
+      whiteNoise(ctx, 0.2, gn, {
+        filterType: "lowpass",
+        filterFreq: 350,
+        filterQ: 0.6,
+      });
+      lfo(ctx, earthOsc.frequency, 3, 5, {
+        stopOffset: ctx.currentTime + 0.45,
+      });
       break;
-    case "ice":
-      playTone(1800, 0.1, "sine", 0.15);
-      setTimeout(() => playTone(2200, 0.08, "sine", 0.12), 50);
-      setTimeout(() => playTone(1400, 0.12, "sine", 0.1), 100);
+    }
+    case "ice": {
+      const gi = out(ctx, 1);
+      adsr(
+        gi.gain,
+        ctx,
+        {
+          attack: 0.01,
+          decay: 0.1,
+          sustain: 0.2,
+          release: 0.2,
+          peak: vv(0.16),
+        },
+        0.12,
+      );
+      chord(ctx, [1800, 2200, 2800], "sine", gi, 0, 0.42);
+      lfo(ctx, gi.gain, 12, vv(0.06), { stopOffset: ctx.currentTime + 0.42 });
+      const gn = out(ctx, 1);
+      adsr(
+        gn.gain,
+        ctx,
+        { attack: 0.005, decay: 0.18, sustain: 0, release: 0, peak: vv(0.1) },
+        0.01,
+        0.05,
+      );
+      whiteNoise(ctx, 0.22, gn, {
+        filterType: "highpass",
+        filterFreq: 4000,
+        filterQ: 1,
+        startOffset: 0.05,
+      });
       break;
-    case "shadow":
-      playTone(150, 0.3, "sawtooth", 0.2, -30);
-      playTone(153, 0.3, "sawtooth", 0.2, 30); // detune for eerie effect
+    }
+    case "shadow": {
+      const gs = out(ctx, 1);
+      adsr(
+        gs.gain,
+        ctx,
+        {
+          attack: 0.015,
+          decay: 0.08,
+          sustain: 0.6,
+          release: 0.3,
+          peak: vv(0.18),
+        },
+        0.2,
+      );
+      osc(
+        ctx,
+        {
+          type: "sawtooth",
+          freq: 150,
+          detune: -30,
+          stopOffset: ctx.currentTime + 0.52,
+        },
+        gs,
+      );
+      osc(
+        ctx,
+        {
+          type: "sawtooth",
+          freq: 150,
+          detune: 30,
+          stopOffset: ctx.currentTime + 0.52,
+        },
+        gs,
+      );
+      lfo(ctx, gs.gain, 7, vv(0.09), { stopOffset: ctx.currentTime + 0.52 });
       break;
-    case "wind":
-      // Airy swoosh with ascending whistle
-      playNoise(0.25, 0.18);
-      playTone(800, 0.15, "sine", 0.12);
-      setTimeout(() => playTone(1200, 0.1, "sine", 0.1), 60);
+    }
+    case "wind": {
+      const gwind = out(ctx, 1);
+      adsr(
+        gwind.gain,
+        ctx,
+        {
+          attack: 0.02,
+          decay: 0.1,
+          sustain: 0.3,
+          release: 0.22,
+          peak: vv(0.18),
+        },
+        0.18,
+      );
+      whiteNoise(ctx, 0.32, gwind, {
+        filterType: "bandpass",
+        filterFreq: 900,
+        filterQ: 1.5,
+      });
+      const gw = out(ctx, 1);
+      adsr(
+        gw.gain,
+        ctx,
+        {
+          attack: 0.015,
+          decay: 0.08,
+          sustain: 0.2,
+          release: 0.18,
+          peak: vv(0.12),
+        },
+        0.14,
+      );
+      const windOsc = osc(
+        ctx,
+        { type: "sine", freq: 800, stopOffset: ctx.currentTime + 0.38 },
+        gw,
+      );
+      freqRamp(windOsc, ctx, 800, 1300, 0.22);
       break;
-    case "nature":
-      // Organic rustling with earthy tone
-      playNoise(0.18, 0.12);
-      playTone(260, 0.2, "triangle", 0.18);
-      setTimeout(() => playTone(330, 0.15, "triangle", 0.12), 80);
+    }
+    case "nature": {
+      const gn = out(ctx, 1);
+      adsr(
+        gn.gain,
+        ctx,
+        {
+          attack: 0.015,
+          decay: 0.12,
+          sustain: 0.2,
+          release: 0.2,
+          peak: vv(0.14),
+        },
+        0.14,
+      );
+      whiteNoise(ctx, 0.28, gn, {
+        filterType: "bandpass",
+        filterFreq: 400,
+        filterQ: 1.2,
+      });
+      const gnat = out(ctx, 1);
+      adsr(
+        gnat.gain,
+        ctx,
+        {
+          attack: 0.02,
+          decay: 0.1,
+          sustain: 0.4,
+          release: 0.25,
+          peak: vv(0.18),
+        },
+        0.18,
+      );
+      chord(ctx, [260, 330, 392], "triangle", gnat, 0, 0.45);
+      lfo(ctx, gnat.gain, 5, vv(0.05), { stopOffset: ctx.currentTime + 0.45 });
       break;
-    case "psychic":
-      // Eerie warbling pulse
-      playTone(600, 0.25, "sine", 0.2, 20);
-      playTone(603, 0.25, "sine", 0.2, -20);
-      setTimeout(() => playTone(900, 0.12, "sine", 0.12), 100);
+    }
+    case "psychic": {
+      const gp = out(ctx, 1);
+      adsr(
+        gp.gain,
+        ctx,
+        {
+          attack: 0.02,
+          decay: 0.08,
+          sustain: 0.6,
+          release: 0.3,
+          peak: vv(0.2),
+        },
+        0.2,
+      );
+      osc(
+        ctx,
+        {
+          type: "sine",
+          freq: 600,
+          detune: 20,
+          stopOffset: ctx.currentTime + 0.52,
+        },
+        gp,
+      );
+      osc(
+        ctx,
+        {
+          type: "sine",
+          freq: 600,
+          detune: -20,
+          stopOffset: ctx.currentTime + 0.52,
+        },
+        gp,
+      );
+      const go = out(ctx, 1);
+      adsr(
+        go.gain,
+        ctx,
+        {
+          attack: 0.03,
+          decay: 0.1,
+          sustain: 0.3,
+          release: 0.25,
+          peak: vv(0.1),
+        },
+        0.18,
+        0.06,
+      );
+      osc(
+        ctx,
+        { type: "sine", freq: 1800, stopOffset: ctx.currentTime + 0.52 },
+        go,
+      );
       break;
-    case "metal":
-      // Metallic clang with ring-out
-      playTone(1600, 0.08, "square", 0.2);
-      playNoise(0.06, 0.2);
-      setTimeout(() => playTone(2400, 0.15, "sine", 0.12), 40);
+    }
+    case "metal": {
+      const gm = out(ctx, 1);
+      adsr(
+        gm.gain,
+        ctx,
+        {
+          attack: 0.003,
+          decay: 0.06,
+          sustain: 0.15,
+          release: 0.35,
+          peak: vv(0.22),
+        },
+        0.04,
+      );
+      chord(ctx, [1600, 2400], "square", gm, 0, 0.52);
+      const dist = makeDistortion(ctx, 80);
+      dist.connect(ctx.destination);
+      const gdist = ctx.createGain();
+      gdist.gain.value = 0;
+      adsr(
+        gdist.gain,
+        ctx,
+        { attack: 0.003, decay: 0.1, sustain: 0, release: 0, peak: vv(0.12) },
+        0.01,
+      );
+      gdist.connect(dist);
+      whiteNoise(ctx, 0.14, gdist, {
+        filterType: "bandpass",
+        filterFreq: 3000,
+        filterQ: 1.5,
+      });
       break;
-    case "light":
-      // Bright shimmer cascade
-      playTone(1400, 0.1, "sine", 0.18);
-      setTimeout(() => playTone(1800, 0.08, "sine", 0.15), 40);
-      setTimeout(() => playTone(2200, 0.1, "sine", 0.12), 80);
+    }
+    case "light": {
+      const gl = out(ctx, 1);
+      adsr(
+        gl.gain,
+        ctx,
+        {
+          attack: 0.01,
+          decay: 0.08,
+          sustain: 0.3,
+          release: 0.3,
+          peak: vv(0.18),
+        },
+        0.16,
+      );
+      chord(ctx, [1400, 1800, 2200, 2800], "sine", gl, 0, 0.52);
+      lfo(ctx, gl.gain, 15, vv(0.05), { stopOffset: ctx.currentTime + 0.52 });
+      const gn = out(ctx, 1);
+      adsr(
+        gn.gain,
+        ctx,
+        { attack: 0.008, decay: 0.15, sustain: 0, release: 0, peak: vv(0.1) },
+        0.01,
+      );
+      whiteNoise(ctx, 0.2, gn, {
+        filterType: "highpass",
+        filterFreq: 5000,
+        filterQ: 0.8,
+      });
       break;
-    case "toxic":
-      // Bubbly corrosive hiss
-      playNoise(0.2, 0.18);
-      playTone(200, 0.2, "sawtooth", 0.15);
-      setTimeout(() => playTone(250, 0.1, "sawtooth", 0.1), 70);
-      setTimeout(() => playTone(180, 0.12, "sawtooth", 0.08), 140);
+    }
+    case "toxic": {
+      const gt = out(ctx, 1);
+      adsr(
+        gt.gain,
+        ctx,
+        {
+          attack: 0.01,
+          decay: 0.1,
+          sustain: 0.3,
+          release: 0.22,
+          peak: vv(0.18),
+        },
+        0.14,
+      );
+      const t1 = osc(
+        ctx,
+        {
+          type: "sawtooth",
+          freq: 220,
+          detune: 10,
+          stopOffset: ctx.currentTime + 0.42,
+        },
+        gt,
+      );
+      const t2 = osc(
+        ctx,
+        {
+          type: "sawtooth",
+          freq: 220,
+          detune: -10,
+          stopOffset: ctx.currentTime + 0.42,
+        },
+        gt,
+      );
+      freqRamp(t1, ctx, 220, 160, 0.22);
+      freqRamp(t2, ctx, 220, 180, 0.22);
+      const gn = out(ctx, 1);
+      adsr(
+        gn.gain,
+        ctx,
+        { attack: 0.008, decay: 0.18, sustain: 0, release: 0, peak: vv(0.16) },
+        0.01,
+      );
+      whiteNoise(ctx, 0.24, gn, {
+        filterType: "bandpass",
+        filterFreq: 600,
+        filterQ: 1,
+      });
+      void t1;
+      void t2;
       break;
-    default:
-      // Fallback generic accent
-      playNoise(0.15, 0.15);
-      playTone(400, 0.12, "sawtooth", 0.18);
+    }
+    case "void": {
+      // Alien beating: two detuned saws + ring-mod pulse + highpass noise tail
+      const gvoid = out(ctx, 1);
+      adsr(
+        gvoid.gain,
+        ctx,
+        {
+          attack: 0.02,
+          decay: 0.08,
+          sustain: 0.6,
+          release: 0.4,
+          peak: vv(0.18),
+        },
+        0.22,
+      );
+      osc(
+        ctx,
+        { type: "sawtooth", freq: 196, stopOffset: ctx.currentTime + 0.65 },
+        gvoid,
+      );
+      osc(
+        ctx,
+        { type: "sawtooth", freq: 244, stopOffset: ctx.currentTime + 0.65 },
+        gvoid,
+      );
+      lfo(ctx, gvoid.gain, 7, vv(0.1), { stopOffset: ctx.currentTime + 0.65 });
+      const gsub = out(ctx, 1);
+      adsr(
+        gsub.gain,
+        ctx,
+        {
+          attack: 0.02,
+          decay: 0.1,
+          sustain: 0.4,
+          release: 0.3,
+          peak: vv(0.12),
+        },
+        0.18,
+      );
+      osc(
+        ctx,
+        { type: "sine", freq: 55, stopOffset: ctx.currentTime + 0.52 },
+        gsub,
+      );
+      const gn = out(ctx, 1);
+      adsr(
+        gn.gain,
+        ctx,
+        { attack: 0.01, decay: 0.2, sustain: 0, release: 0, peak: vv(0.1) },
+        0.01,
+        0.04,
+      );
+      whiteNoise(ctx, 0.28, gn, {
+        filterType: "highpass",
+        filterFreq: 3500,
+        filterQ: 0.8,
+        startOffset: 0.04,
+      });
       break;
+    }
+    default: {
+      const gg = out(ctx, 1);
+      adsr(
+        gg.gain,
+        ctx,
+        {
+          attack: 0.008,
+          decay: 0.12,
+          sustain: 0.1,
+          release: 0.15,
+          peak: vv(0.18),
+        },
+        0.1,
+      );
+      whiteNoise(ctx, 0.18, gg, {
+        filterType: "bandpass",
+        filterFreq: 600,
+        filterQ: 1,
+      });
+      const go2 = out(ctx, 1);
+      adsr(
+        go2.gain,
+        ctx,
+        { attack: 0.008, decay: 0.1, sustain: 0, release: 0, peak: vv(0.18) },
+        0.02,
+      );
+      osc(
+        ctx,
+        { type: "sawtooth", freq: 400, stopOffset: ctx.currentTime + 0.22 },
+        go2,
+      );
+      break;
+    }
   }
 }
 
