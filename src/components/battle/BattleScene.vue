@@ -172,7 +172,24 @@ async function handlePlayerAction(action: ActionType) {
   if (!playerMonster.value || !enemyMonster.value) return;
 
   isProcessing.value = true;
-
+  // Tick player status (poison dmg, stun/sleep skip)
+  const { skipped } = battleStore.tickPlayerStatus();
+  if (battleStore.phase === "defeat") {
+    await checkDefeat();
+    isProcessing.value = false;
+    return;
+  }
+  if (battleStore.phase === "victory") {
+    await checkVictory();
+    isProcessing.value = false;
+    return;
+  }
+  if (skipped) {
+    await gsapDelay(0.8);
+    await executeEnemyTurn();
+    isProcessing.value = false;
+    return;
+  }
   const playerEl = playerSpriteRef.value?.el;
 
   if (action === "guard") {
@@ -275,6 +292,8 @@ async function executeEnemyTurn() {
 
   // Check for defeat
   if (await checkDefeat()) return;
+  // Check for victory (e.g. enemy fainted from poison)
+  if (await checkVictory()) return;
 
   // Back to player turn
   battleStore.beginPlayerTurn();
@@ -316,6 +335,7 @@ onBeforeUnmount(() => {
           :monster-name="enemyMonster.name"
           :element="enemyMonster.element"
           :level="enemyMonster.level"
+          :status-effect="enemyMonster.statusEffect"
           side="enemy"
         />
       </div>
@@ -354,6 +374,7 @@ onBeforeUnmount(() => {
           :monster-name="playerMonster.name"
           :element="playerMonster.element"
           :level="playerMonster.level"
+          :status-effect="playerMonster.statusEffect"
           side="player"
         />
       </div>

@@ -20,6 +20,10 @@ const typeClasses: Record<string, string> = {
   system: "text-purple-300",
   guard: "text-cyan-400",
   miss: "text-white/40 italic",
+  heal: "text-emerald-400 font-semibold",
+  poison: "text-green-400",
+  stun: "text-yellow-300",
+  sleep: "text-indigo-300",
 };
 
 const typeIcons: Record<string, string> = {
@@ -30,6 +34,10 @@ const typeIcons: Record<string, string> = {
   system: "circle-info",
   guard: "shield-halved",
   miss: "circle-xmark",
+  heal: "heart",
+  poison: "skull",
+  stun: "bolt",
+  sleep: "moon",
 };
 
 watch(

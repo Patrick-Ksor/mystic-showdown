@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from "vue";
 import gsap from "gsap";
-import type { ElementType } from "@/types";
+import type { ElementType, StatusCondition } from "@/types";
 import { ELEMENT_COLORS } from "@/types";
 import ElementBadge from "@/components/ui/ElementBadge.vue";
 
@@ -12,6 +12,7 @@ interface Props {
   element: ElementType;
   level: number;
   side: "player" | "enemy";
+  statusEffect?: StatusCondition | null;
 }
 
 const props = defineProps<Props>();
@@ -33,6 +34,34 @@ const barColor = computed(() => {
 
 const barGlow = computed(() => {
   return `0 0 8px ${barColor.value}66, 0 0 16px ${barColor.value}22`;
+});
+
+const statusMeta = computed(() => {
+  if (!props.statusEffect) return null;
+  const map: Record<
+    string,
+    { label: string; icon: string; color: string; bg: string }
+  > = {
+    poison: {
+      label: "PSN",
+      icon: "skull",
+      color: "#86efac",
+      bg: "rgb(21 128 61 / 0.35)",
+    },
+    stun: {
+      label: "STN",
+      icon: "bolt",
+      color: "#fde047",
+      bg: "rgb(133 77 14 / 0.35)",
+    },
+    sleep: {
+      label: "SLP",
+      icon: "moon",
+      color: "#a5b4fc",
+      bg: "rgb(67 56 202 / 0.35)",
+    },
+  };
+  return map[props.statusEffect.type] ?? null;
 });
 
 // Animate HP changes
@@ -119,6 +148,21 @@ onMounted(() => {
       <span class="text-[10px] text-white/40 font-medium">HP</span>
       <span class="text-xs font-mono font-bold" :style="{ color: barColor }">
         {{ displayHP }} / {{ props.maxHP }}
+      </span>
+    </div>
+
+    <!-- Status Badge -->
+    <div v-if="statusMeta" class="mt-1.5 flex items-center gap-1">
+      <span
+        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border border-white/10"
+        :style="{ color: statusMeta.color, backgroundColor: statusMeta.bg }"
+      >
+        <font-awesome-icon
+          :icon="['fas', statusMeta.icon]"
+          class="text-[9px]"
+        />
+        {{ statusMeta.label }}
+        <span class="opacity-60">({{ props.statusEffect!.turnsLeft }})</span>
       </span>
     </div>
   </div>

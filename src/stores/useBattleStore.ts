@@ -8,6 +8,7 @@ import type {
   DamageResult,
   Move,
   MonsterDefinition,
+  StatusCondition,
 } from "@/types";
 import { MONSTERS } from "@/data/monsters";
 import {
@@ -39,6 +40,7 @@ function toBattleMonster(
     level,
     xp: 0,
     isGuarding: false,
+    statusEffect: null,
     moves,
   };
 }
@@ -84,6 +86,95 @@ export const useBattleStore = defineStore("battle", () => {
     if (battleLog.value.length > 50) {
       battleLog.value = battleLog.value.slice(-50);
     }
+  }
+
+  // ─── Move Effect Application ────────────────────────────
+  function applyMoveEffect(
+    move: Move,
+    attacker: BattleMonster,
+    defender: BattleMonster,
+  ): void {
+    if (!move.effect) return;
+    const { type, chance, value } = move.effect;
+    if (Math.random() * 100 > chance) return;
+
+    if (type === "heal") {
+      const healAmt = Math.floor(((value ?? 25) / 100) * attacker.maxHP);
+      const actual = Math.min(healAmt, attacker.maxHP - attacker.currentHP);
+      if (actual <= 0) return;
+      attacker.currentHP = Math.min(
+        attacker.maxHP,
+        attacker.currentHP + healAmt,
+      );
+      addLog(`${attacker.name} recovered ${actual} HP!`, "heal");
+      return;
+    }
+
+    // Status conditions – can't stack
+    if (defender.statusEffect) return;
+    const durations: Record<string, number> = { poison: 3, stun: 1, sleep: 2 };
+    defender.statusEffect = {
+      type: type as StatusCondition["type"],
+      turnsLeft: durations[type],
+    };
+    const labels: Record<string, string> = {
+      poison: "was poisoned",
+      stun: "was stunned",
+      sleep: "fell asleep",
+    };
+    addLog(`${defender.name} ${labels[type]}!`, type as BattleLogEntry["type"]);
+  }
+
+  // ─── Status Tick ─────────────────────────────────────────
+  /** Tick status for a monster. Returns true if the monster's turn is skipped. */
+  function tickStatus(
+    monster: BattleMonster,
+    target: "player" | "enemy",
+  ): boolean {
+    if (!monster.statusEffect) return false;
+    const status = monster.statusEffect;
+
+    if (status.type === "poison") {
+      const dmg = Math.max(1, Math.floor(monster.maxHP * 0.1));
+      monster.currentHP = Math.max(0, monster.currentHP - dmg);
+      addLog(`${monster.name} is hurt by poison! (${dmg} dmg)`, "poison");
+      status.turnsLeft--;
+      if (status.turnsLeft <= 0) {
+        monster.statusEffect = null;
+        addLog(`${monster.name} recovered from poison!`, "system");
+      }
+      if (monster.currentHP <= 0) {
+        addLog(`${monster.name} fainted!`, "system");
+        phase.value = target === "player" ? "defeat" : "victory";
+      }
+      return false;
+    }
+
+    if (status.type === "stun") {
+      addLog(`${monster.name} is stunned and can't move!`, "stun");
+      status.turnsLeft--;
+      if (status.turnsLeft <= 0) monster.statusEffect = null;
+      return true;
+    }
+
+    if (status.type === "sleep") {
+      addLog(`${monster.name} is fast asleep!`, "sleep");
+      status.turnsLeft--;
+      if (status.turnsLeft <= 0) {
+        monster.statusEffect = null;
+        addLog(`${monster.name} woke up!`, "system");
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  /** Tick player's status. Returns whether their turn should be skipped. */
+  function tickPlayerStatus(): { skipped: boolean } {
+    if (!playerMonster.value) return { skipped: false };
+    const skipped = tickStatus(playerMonster.value, "player");
+    return { skipped };
   }
 
   function selectMonster(monsterId: string, presetEnemy?: MonsterDefinition) {
@@ -179,6 +270,9 @@ export const useBattleStore = defineStore("battle", () => {
 
     // Apply damage
     defender.currentHP = Math.max(0, defender.currentHP - damage);
+
+    // Apply secondary move effect
+    applyMoveEffect(move, attacker, defender);
 
     // Build message
     let message = `${attacker.name} used ${move.name}! Dealt ${damage} damage!`;
@@ -289,6 +383,13 @@ export const useBattleStore = defineStore("battle", () => {
     phase.value = "animating";
     isAnimating.value = true;
 
+    // Tick enemy status – skip turn if stunned/asleep
+    const skipped = tickStatus(enemyMonster.value, "enemy");
+    if (skipped || isBattleOver.value) {
+      isAnimating.value = false;
+      return null;
+    }
+
     // CPU AI: 40% basic move, 40% random special, 20% guard
     const roll = Math.random();
     let result: DamageResult | null = null;
@@ -366,6 +467,7 @@ export const useBattleStore = defineStore("battle", () => {
     executePlayerAction,
     beginEnemyTurn,
     executeEnemyTurn,
+    tickPlayerStatus,
     $reset,
   };
 });

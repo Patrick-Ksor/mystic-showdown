@@ -78,7 +78,9 @@ export const MONSTERS: MonsterDefinition[] = [
       element: "electric",
       accuracy: 85,
       isSpecial: true,
-      description: "Hurls a concentrated bolt of lightning at the foe.",
+      description:
+        "Hurls a concentrated bolt of lightning at the foe. May stun the target.",
+      effect: { type: "stun", chance: 30 },
     },
   },
   {
@@ -242,7 +244,8 @@ export const MONSTERS: MonsterDefinition[] = [
       accuracy: 83,
       isSpecial: true,
       description:
-        "Unleashes a chain of electricity that arcs through the battlefield.",
+        "Unleashes a chain of electricity through the battlefield. The shock may stun the target.",
+      effect: { type: "stun", chance: 30 },
     },
   },
   {
@@ -297,7 +300,9 @@ export const MONSTERS: MonsterDefinition[] = [
       element: "water",
       accuracy: 86,
       isSpecial: true,
-      description: "Summons a crushing column of abyssal seawater.",
+      description:
+        "Summons a crushing column of abyssal seawater. The deep-tide energy restores the user's vitality.",
+      effect: { type: "heal", chance: 100, value: 25 },
     },
   },
   {
@@ -819,7 +824,8 @@ export const MONSTERS: MonsterDefinition[] = [
           accuracy: 84,
           isSpecial: true,
           description:
-            "Causes explosive plant growth that entangles and crushes.",
+            "Causes explosive plant growth that entangles and crushes. Channels the life-force back into the user.",
+          effect: { type: "heal", chance: 100, value: 25 },
         },
       },
       {
@@ -907,7 +913,9 @@ export const MONSTERS: MonsterDefinition[] = [
       element: "nature",
       accuracy: 88,
       isSpecial: true,
-      description: "Commands the forest itself to entangle and crush the foe.",
+      description:
+        "Commands the forest to entangle and crush the foe. The smothering vines may lull the target to sleep.",
+      effect: { type: "sleep", chance: 25 },
     },
   },
 
@@ -964,7 +972,8 @@ export const MONSTERS: MonsterDefinition[] = [
       accuracy: 80,
       isSpecial: true,
       description:
-        "Unleashes a psychic maelstrom that assaults all senses at once.",
+        "Assaults all senses with a psychic maelstrom. The mental overload may force the target into a deep, involuntary sleep.",
+      effect: { type: "sleep", chance: 25 },
     },
   },
   {
@@ -1244,7 +1253,8 @@ export const MONSTERS: MonsterDefinition[] = [
       accuracy: 87,
       isSpecial: true,
       description:
-        "Detonates a sphere of concentrated luminance around the foe.",
+        "Detonates a sphere of concentrated luminance. The sacred light washes over the user, mending their wounds.",
+      effect: { type: "heal", chance: 100, value: 25 },
     },
   },
 
@@ -1301,7 +1311,9 @@ export const MONSTERS: MonsterDefinition[] = [
       element: "toxic",
       accuracy: 83,
       isSpecial: true,
-      description: "Sprays a geyser of virulent acid across the battlefield.",
+      description:
+        "Sprays a geyser of virulent acid across the battlefield. May poison the target.",
+      effect: { type: "poison", chance: 30 },
     },
   },
   {
@@ -1356,7 +1368,9 @@ export const MONSTERS: MonsterDefinition[] = [
       element: "toxic",
       accuracy: 81,
       isSpecial: true,
-      description: "Releases a choking miasma of toxic spores.",
+      description:
+        "Releases a choking miasma of toxic spores that seep into the target, slowly poisoning them.",
+      effect: { type: "poison", chance: 30 },
     },
   },
   // ─── VOID LEGENDARY ─────────────────────────────────────────
@@ -1413,7 +1427,8 @@ export const MONSTERS: MonsterDefinition[] = [
       accuracy: 85,
       isSpecial: true,
       description:
-        "Unleashes a wave of pure entropy that decays everything in its path.",
+        "Unleashes a wave of pure entropy. The unraveling of matter leaves the target paralysed with existential shock.",
+      effect: { type: "stun", chance: 35 },
     },
   },
 ];

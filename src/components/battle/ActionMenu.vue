@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { ActionType, BattleMonster } from "@/types";
+import type { ActionType, BattleMonster, MoveEffect } from "@/types";
 import { ELEMENT_COLORS, ELEMENT_ICONS } from "@/types";
 
 interface Props {
@@ -28,6 +28,13 @@ function onLeave(event: Event, color: string) {
   if (el) el.style.boxShadow = `inset 0 0 20px ${color}11`;
 }
 
+const effectMeta: Record<string, { label: string; color: string }> = {
+  poison: { label: "PSN", color: "#86efac" },
+  stun: { label: "STN", color: "#fde047" },
+  sleep: { label: "SLP", color: "#a5b4fc" },
+  heal: { label: "HEAL", color: "#34d399" },
+};
+
 const moveActions = computed(() =>
   props.monster.moves.map((move, index) => ({
     type: `move${index}` as ActionType,
@@ -37,6 +44,7 @@ const moveActions = computed(() =>
     color: ELEMENT_COLORS[move.element],
     power: move.power,
     accuracy: move.accuracy,
+    effect: move.effect ?? null,
   }))
 );
 
@@ -89,7 +97,20 @@ const utilityActions = computed(() => [
           class="text-base sm:text-lg"
         />
         <span class="text-xs sm:text-sm leading-tight">{{ action.label }}</span>
-        <span class="text-[10px] opacity-50"> PWR {{ action.power }} </span>
+        <div class="flex items-center gap-1">
+          <span class="text-[10px] opacity-50"> PWR {{ action.power }} </span>
+          <span
+            v-if="action.effect"
+            class="text-[9px] font-bold px-1 rounded"
+            :style="{
+              color: effectMeta[action.effect.type]?.color,
+              backgroundColor: effectMeta[action.effect.type]?.color + '22',
+            }"
+          >
+            {{ effectMeta[action.effect.type]?.label }}
+            {{ action.effect.chance < 100 ? action.effect.chance + "%" : "" }}
+          </span>
+        </div>
       </button>
     </div>
 

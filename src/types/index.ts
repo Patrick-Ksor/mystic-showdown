@@ -56,6 +56,23 @@ export const ACTION_ICONS: Record<ActionType, string> = {
   run: "person-running",
 };
 
+// ─── Move Effects ────────────────────────────────────────────
+export type MoveEffectType = "heal" | "poison" | "stun" | "sleep";
+
+export interface MoveEffect {
+  type: MoveEffectType;
+  /** Roll 0–100; 100 = always triggers */
+  chance: number;
+  /** HP percentage to restore for 'heal' effects */
+  value?: number;
+}
+
+// ─── Status Conditions ───────────────────────────────────────
+export interface StatusCondition {
+  type: "poison" | "stun" | "sleep";
+  turnsLeft: number;
+}
+
 // ─── Moves ───────────────────────────────────────────────────
 export interface Move {
   name: string;
@@ -64,6 +81,7 @@ export interface Move {
   accuracy: number;
   isSpecial: boolean;
   description: string;
+  effect?: MoveEffect;
 }
 
 export interface LearnableMove {
@@ -96,6 +114,7 @@ export interface BattleMonster extends MonsterDefinition {
   level: number;
   xp: number;
   isGuarding: boolean;
+  statusEffect: StatusCondition | null;
   moves: Move[];
 }
 
@@ -126,7 +145,11 @@ export type LogEntryType =
   | "ineffective"
   | "system"
   | "guard"
-  | "miss";
+  | "miss"
+  | "heal"
+  | "poison"
+  | "stun"
+  | "sleep";
 
 export interface BattleLogEntry {
   id: number;
