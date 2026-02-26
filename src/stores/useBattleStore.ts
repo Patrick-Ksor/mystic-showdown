@@ -60,9 +60,6 @@ export const useBattleStore = defineStore("battle", () => {
     (DamageResult & { target: "player" | "enemy" }) | null
   >(null);
   const isAnimating = ref(false);
-  // Tracks whether the player has already made an attack move this combat turn
-  // (used by opening_blow perk to guarantee a crit on the first attack each turn)
-  const playerHasAttackedThisTurn = ref(false);
 
   // ─── Getters ─────────────────────────────────────────────
   const isPlayerTurn = computed(() => phase.value === "playerTurn");
@@ -342,7 +339,6 @@ export const useBattleStore = defineStore("battle", () => {
     if (!playerMonster.value || !enemyMonster.value) return;
     phase.value = "intro";
     turnCount.value = 0;
-    playerHasAttackedThisTurn.value = false;
     battleLog.value = [];
     logIdCounter = 0;
     addLog(
@@ -355,7 +351,6 @@ export const useBattleStore = defineStore("battle", () => {
   function beginPlayerTurn() {
     phase.value = "playerTurn";
     turnCount.value++;
-    playerHasAttackedThisTurn.value = false;
     if (playerMonster.value) {
       // Clear guarding from previous turn
       playerMonster.value.isGuarding = false;
@@ -418,15 +413,12 @@ export const useBattleStore = defineStore("battle", () => {
     const perks = gauntletStore.activePerks;
     const isPlayerAttacking = target === "enemy";
 
-    // opening_blow: first player attack each combat turn is a guaranteed crit
+    // opening_blow: first player attack each round is a guaranteed crit
     const finalCrit =
       isCritical ||
       (isPlayerAttacking &&
         perks.includes("opening_blow") &&
-        !playerHasAttackedThisTurn.value);
-
-    // Mark that the player has now attacked this turn
-    if (isPlayerAttacking) playerHasAttackedThisTurn.value = true;
+        turnCount.value === 1);
 
     // power_surge: player deals +15% damage
     const powerSurgeMult =
@@ -705,7 +697,6 @@ export const useBattleStore = defineStore("battle", () => {
     playerMonster.value = null;
     enemyMonster.value = null;
     turnCount.value = 0;
-    playerHasAttackedThisTurn.value = false;
     battleLog.value = [];
     lastDamageResult.value = null;
     isAnimating.value = false;

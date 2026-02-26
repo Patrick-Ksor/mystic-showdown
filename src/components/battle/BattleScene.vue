@@ -5,6 +5,7 @@ import { useRouter } from "vue-router";
 import gsap from "gsap";
 import { useBattleStore } from "@/stores/useBattleStore";
 import type { ActionType } from "@/types";
+import { ELEMENT_COLORS } from "@/types";
 import {
   animateAttack,
   animateDamage,
@@ -12,11 +13,13 @@ import {
   animateFaint,
   animateGuard,
   animateScreenShake,
+  spawnDamageNumber,
 } from "@/composables/useBattleAnimations";
 import {
   startBattleMusic,
   stopBattleMusic,
 } from "@/composables/useBattleMusic";
+import { startArenaParticles } from "@/composables/useArenaParticles";
 import { gsapDelay } from "@/composables/useGsapContext";
 import { useSoundEffects } from "@/composables/useSoundEffects";
 import MonsterSprite from "@/components/monsters/MonsterSprite.vue";
@@ -44,9 +47,12 @@ const playerSpriteRef = ref<InstanceType<typeof MonsterSprite> | null>(null);
 const enemySpriteRef = ref<InstanceType<typeof MonsterSprite> | null>(null);
 const sceneRef = ref<HTMLElement | null>(null);
 const bannerRef = ref<HTMLElement | null>(null);
+const particlesContainerRef = ref<HTMLElement | null>(null);
 const isProcessing = ref(false);
 const showBanner = ref(false);
 const bannerText = ref("");
+
+let stopParticles: (() => void) | null = null;
 
 // ─── Intro Sequence ────────────────────────────────────────
 onMounted(async () => {
@@ -57,6 +63,14 @@ onMounted(async () => {
 
   battleStore.startBattle();
   startBattleMusic();
+
+  // Start ambient arena particles matching the enemy's element
+  if (particlesContainerRef.value && enemyMonster.value) {
+    stopParticles = startArenaParticles(
+      particlesContainerRef.value,
+      enemyMonster.value.element
+    );
+  }
 
   await gsapDelay(0.3);
 
@@ -136,6 +150,13 @@ async function animatePlayerAttack(
       sfx.playAttackHit(result.isSpecial ?? false);
     }
     await animateDamage(enemyEl, result.isCritical, enemyRatio);
+    void spawnDamageNumber(
+      enemyEl,
+      result.damage,
+      result.isCritical,
+      result.effectiveness,
+      ELEMENT_COLORS[move.element]
+    );
   } else if (result && result.damage === 0) {
     sfx.playMiss();
   }
@@ -150,7 +171,7 @@ async function checkVictory(): Promise<boolean> {
     stopBattleMusic();
     if (enemySpriteRef.value?.el) {
       sfx.playFaint();
-      await animateFaint(enemySpriteRef.value.el);
+      await animateFaint(enemySpriteRef.value.el, enemyMonster.value?.element);
     }
     sfx.playVictory();
     await showBannerAnimation("VICTORY!");
@@ -167,7 +188,10 @@ async function checkDefeat(): Promise<boolean> {
     stopBattleMusic();
     if (playerSpriteRef.value?.el) {
       sfx.playFaint();
-      await animateFaint(playerSpriteRef.value.el);
+      await animateFaint(
+        playerSpriteRef.value.el,
+        playerMonster.value?.element
+      );
     }
     sfx.playDefeat();
     await showBannerAnimation("DEFEATED...");
@@ -299,6 +323,15 @@ async function executeEnemyTurn() {
         sfx.playAttackHit(result.isSpecial ?? false);
       }
       await animateDamage(playerEl, result.isCritical, playerRatio);
+      if (enemyMonster.value) {
+        void spawnDamageNumber(
+          playerEl,
+          result.damage,
+          result.isCritical,
+          result.effectiveness,
+          ELEMENT_COLORS[enemyMonster.value.element]
+        );
+      }
     } else {
       sfx.playMiss();
     }
@@ -317,12 +350,20 @@ async function executeEnemyTurn() {
 
 // Cleanup
 onBeforeUnmount(() => {
+  stopParticles?.();
   gsap.killTweensOf("*");
 });
 </script>
 
 <template>
   <div ref="sceneRef" class="battle-scene relative w-full h-full flex flex-col">
+    <!-- Arena ambient particles (z-0, behind everything) -->
+    <div
+      ref="particlesContainerRef"
+      class="absolute inset-0 pointer-events-none overflow-hidden"
+      style="z-index: 0"
+    />
+
     <!-- Top Banner (BATTLE START / VICTORY / DEFEATED) -->
     <div
       v-if="showBanner"

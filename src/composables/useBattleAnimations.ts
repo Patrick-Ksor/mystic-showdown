@@ -649,7 +649,105 @@ export function animateIdle(el: HTMLElement): gsap.core.Tween {
   });
 }
 
-export async function animateFaint(el: HTMLElement): Promise<void> {
+export async function animateFaint(
+  el: HTMLElement,
+  element?: ElementType,
+): Promise<void> {
+  // ── Fire: glow-burst then crumble ──────────────────────────
+  if (element === "fire") {
+    const parent = el.parentElement;
+    // Spawn ember shards
+    if (parent) {
+      for (let i = 0; i < 8; i++) {
+        const p = document.createElement("div");
+        const size = 4 + Math.random() * 6;
+        p.style.cssText = `
+          position:absolute; width:${size}px; height:${size}px;
+          border-radius:50%; background:${Math.random() > 0.5 ? "#ff4d00" : "#ffaa00"};
+          top:50%; left:50%; pointer-events:none; z-index:50;
+          filter:blur(1px);
+        `;
+        parent.style.position = "relative";
+        parent.appendChild(p);
+        const angle = (i / 8) * Math.PI * 2;
+        const dist = 50 + Math.random() * 60;
+        gsap.to(p, {
+          x: Math.cos(angle) * dist,
+          y: Math.sin(angle) * dist - 30,
+          opacity: 0,
+          scale: 0,
+          duration: 0.7 + Math.random() * 0.4,
+          ease: "power2.out",
+          onComplete: () => p.remove(),
+        });
+      }
+    }
+    const tl = gsap.timeline();
+    tl.to(el, {
+      filter: "brightness(3.5) drop-shadow(0 0 30px #ff4d00)",
+      scale: 1.2,
+      duration: 0.2,
+    });
+    tl.to(el, {
+      filter: "brightness(0) drop-shadow(0 0 0px transparent)",
+      scale: 0.4,
+      opacity: 0,
+      duration: 0.55,
+      ease: "power2.in",
+    });
+    return gsapPromise(tl);
+  }
+
+  // ── Ice: shatter flat ──────────────────────────────────────
+  if (element === "ice") {
+    const tl = gsap.timeline();
+    tl.to(el, {
+      filter: "brightness(2.5) drop-shadow(0 0 20px #7dd3fc)",
+      duration: 0.1,
+    });
+    tl.to(
+      el,
+      {
+        scaleX: 0.05,
+        scaleY: 1.35,
+        duration: 0.12,
+        ease: "power3.in",
+      },
+      "<",
+    );
+    tl.to(el, { scaleY: 0, opacity: 0, duration: 0.18, ease: "power2.in" });
+    return gsapPromise(tl);
+  }
+
+  // ── Electric: flash then blast upward ─────────────────────
+  if (element === "electric") {
+    const tl = gsap.timeline();
+    for (let i = 0; i < 5; i++) {
+      tl.to(el, {
+        filter: "brightness(4) drop-shadow(0 0 25px #ffe44d)",
+        x: i % 2 === 0 ? 8 : -8,
+        duration: 0.04,
+      });
+      tl.to(el, { filter: "brightness(1)", x: 0, duration: 0.04 });
+    }
+    tl.to(el, { y: -40, opacity: 0, duration: 0.3, ease: "power2.out" });
+    return gsapPromise(tl);
+  }
+
+  // ── Shadow / Void: dark implosion ─────────────────────────
+  if (element === "shadow" || element === "void") {
+    return gsapPromise(
+      gsap.to(el, {
+        filter: "grayscale(1) brightness(0.2) drop-shadow(0 0 20px #6600cc)",
+        scale: 0,
+        opacity: 0,
+        duration: 1.1,
+        ease: "power3.inOut",
+      }),
+    );
+  }
+
+  // ── Default: tip-over ─────────────────────────────────────
   return gsapPromise(
     gsap.to(el, {
       rotation: 90,
@@ -658,6 +756,72 @@ export async function animateFaint(el: HTMLElement): Promise<void> {
       duration: 0.8,
       ease: "power2.in",
     }),
+  );
+}
+
+/**
+ * Spawn a floating damage number above `targetEl`.
+ * Fire-and-forget — does not need to be awaited.
+ */
+export function spawnDamageNumber(
+  targetEl: HTMLElement,
+  amount: number,
+  isCritical: boolean,
+  effectiveness: "super" | "resisted" | "neutral",
+  elementColor: string,
+): void {
+  let color = elementColor;
+  let fontSize = "1.6rem";
+  let fontWeight = "bold";
+  let text = `${amount}`;
+  let fontStyle = "normal";
+
+  if (isCritical) {
+    color = "#ff2244";
+    fontSize = "2.2rem";
+    text = `${amount}!`;
+  } else if (effectiveness === "super") {
+    color = "#fde047";
+    fontSize = "1.9rem";
+  } else if (effectiveness === "resisted") {
+    color = "#93c5fd";
+    fontSize = "1.1rem";
+    fontStyle = "italic";
+  }
+
+  const el = document.createElement("div");
+  el.textContent = text;
+  el.style.cssText = `
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: ${fontSize};
+    font-weight: ${fontWeight};
+    font-style: ${fontStyle};
+    color: ${color};
+    pointer-events: none;
+    z-index: 100;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 20px ${color}88;
+    white-space: nowrap;
+    user-select: none;
+  `;
+
+  // targetEl is `position:relative` so absolute children position correctly
+  targetEl.style.position = "relative";
+  targetEl.appendChild(el);
+
+  gsap.fromTo(
+    el,
+    { y: 0, opacity: 1, scale: isCritical ? 0.4 : 0.8 },
+    {
+      y: isCritical ? -90 : -70,
+      opacity: 0,
+      scale: 1,
+      duration: isCritical ? 1.0 : 0.85,
+      ease: "power2.out",
+      onComplete: () => el.remove(),
+    },
   );
 }
 
