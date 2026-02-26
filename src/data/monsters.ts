@@ -34,7 +34,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 75,
     defense: 55,
     speed: 75,
-    weaknesses: ["earth", "ice"],
     learnset: [
       {
         level: 6,
@@ -56,6 +55,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "electric",
           accuracy: 80,
           isSpecial: true,
+          isSignature: true,
           description:
             "Calls down the full fury of a thunderstorm in a single devastating strike.",
         },
@@ -91,7 +91,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 55,
     defense: 60,
     speed: 50,
-    weaknesses: ["electric", "nature", "toxic"],
     learnset: [
       {
         level: 6,
@@ -113,6 +112,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "water",
           accuracy: 80,
           isSpecial: true,
+          isSignature: true,
           description:
             "Channels the fury of the deep ocean into an overwhelming deluge.",
         },
@@ -146,7 +146,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 85,
     defense: 60,
     speed: 60,
-    weaknesses: ["water", "earth", "light"],
     learnset: [
       {
         level: 6,
@@ -167,6 +166,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "fire",
           accuracy: 78,
           isSpecial: true,
+          isSignature: true,
           description: "Engulfs the battlefield in an apocalyptic firestorm.",
         },
       },
@@ -201,7 +201,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 85,
     defense: 65,
     speed: 70,
-    weaknesses: ["earth", "ice"],
     learnset: [
       {
         level: 6,
@@ -223,6 +222,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "electric",
           accuracy: 79,
           isSpecial: true,
+          isSignature: true,
           description:
             "Slams the ground with enough voltage to crack the earth.",
         },
@@ -258,7 +258,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 70,
     defense: 65,
     speed: 55,
-    weaknesses: ["electric", "nature", "toxic"],
     learnset: [
       {
         level: 6,
@@ -280,6 +279,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "water",
           accuracy: 79,
           isSpecial: true,
+          isSignature: true,
           description:
             "Creates a devastating whirlpool that engulfs everything nearby.",
         },
@@ -315,7 +315,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 60,
     defense: 65,
     speed: 45,
-    weaknesses: ["water", "earth", "light"],
     learnset: [
       {
         level: 6,
@@ -337,6 +336,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "fire",
           accuracy: 80,
           isSpecial: true,
+          isSignature: true,
           description:
             "Triggers a full volcanic eruption that devastates the field.",
         },
@@ -370,7 +370,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 55,
     defense: 65,
     speed: 40,
-    weaknesses: ["water", "nature"],
     learnset: [
       {
         level: 6,
@@ -392,6 +391,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "earth",
           accuracy: 79,
           isSpecial: true,
+          isSignature: true,
           description:
             "Raises and drops an enormous slab of bedrock on the target.",
         },
@@ -426,7 +426,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 85,
     defense: 65,
     speed: 50,
-    weaknesses: ["fire", "metal"],
     learnset: [
       {
         level: 6,
@@ -448,6 +447,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "ice",
           accuracy: 78,
           isSpecial: true,
+          isSignature: true,
           description:
             "Drops the temperature to absolute zero in a devastating pulse.",
         },
@@ -482,7 +482,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 90,
     defense: 65,
     speed: 75,
-    weaknesses: ["wind", "light", "void"],
     learnset: [
       {
         level: 6,
@@ -504,6 +503,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "shadow",
           accuracy: 78,
           isSpecial: true,
+          isSignature: true,
           description:
             "Tears a rift in reality, unleashing pure nothingness on the foe.",
         },
@@ -538,7 +538,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 60,
     defense: 80,
     speed: 40,
-    weaknesses: ["water", "nature"],
     learnset: [
       {
         level: 6,
@@ -560,6 +559,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "earth",
           accuracy: 80,
           isSpecial: true,
+          isSignature: true,
           description: "Cleaves the very bedrock apart with titanic force.",
         },
       },
@@ -592,7 +592,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 65,
     defense: 70,
     speed: 55,
-    weaknesses: ["fire", "metal"],
     learnset: [
       {
         level: 6,
@@ -613,6 +612,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "ice",
           accuracy: 79,
           isSpecial: true,
+          isSignature: true,
           description:
             "Encases the battlefield in an ancient glacier's crushing force.",
         },
@@ -648,7 +648,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 75,
     defense: 65,
     speed: 65,
-    weaknesses: ["wind", "light", "void"],
     learnset: [
       {
         level: 6,
@@ -670,6 +669,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "shadow",
           accuracy: 79,
           isSpecial: true,
+          isSignature: true,
           description:
             "Plunges the field into permanent darkness that devours all light.",
         },
@@ -706,7 +706,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 70,
     defense: 65,
     speed: 70,
-    weaknesses: ["electric", "ice"],
     learnset: [
       {
         level: 6,
@@ -727,6 +726,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "wind",
           accuracy: 80,
           isSpecial: true,
+          isSignature: true,
           description:
             "Summons a full-scale hurricane focused on a single point.",
         },
@@ -761,7 +761,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 85,
     defense: 65,
     speed: 80,
-    weaknesses: ["electric", "ice"],
     learnset: [
       {
         level: 6,
@@ -782,6 +781,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "wind",
           accuracy: 78,
           isSpecial: true,
+          isSignature: true,
           description:
             "Creates a sky-splitting tempest of unrivaled destructive power.",
         },
@@ -817,7 +817,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 65,
     defense: 65,
     speed: 50,
-    weaknesses: ["fire", "ice", "metal"],
     learnset: [
       {
         level: 6,
@@ -840,6 +839,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "nature",
           accuracy: 80,
           isSpecial: true,
+          isSignature: true,
           description:
             "Unleashes the primordial force of nature in a devastating bloom.",
         },
@@ -873,7 +873,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 50,
     defense: 70,
     speed: 45,
-    weaknesses: ["fire", "ice", "metal"],
     learnset: [
       {
         level: 6,
@@ -895,6 +894,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "nature",
           accuracy: 80,
           isSpecial: true,
+          isSignature: true,
           description:
             "The ancient forest awakens, releasing millennia of stored energy.",
         },
@@ -932,7 +932,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 90,
     defense: 65,
     speed: 70,
-    weaknesses: ["shadow", "nature", "toxic", "void"],
     learnset: [
       {
         level: 6,
@@ -954,6 +953,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "psychic",
           accuracy: 78,
           isSpecial: true,
+          isSignature: true,
           description: "Erases all coherent thought in the target's mind.",
         },
       },
@@ -988,7 +988,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 70,
     defense: 70,
     speed: 55,
-    weaknesses: ["shadow", "nature", "toxic", "void"],
     learnset: [
       {
         level: 6,
@@ -1009,6 +1008,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "psychic",
           accuracy: 79,
           isSpecial: true,
+          isSignature: true,
           description:
             "Induces a total mental breakdown with overwhelming psychic force.",
         },
@@ -1045,7 +1045,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 65,
     defense: 75,
     speed: 45,
-    weaknesses: ["fire", "psychic", "toxic"],
     learnset: [
       {
         level: 6,
@@ -1067,6 +1066,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "metal",
           accuracy: 80,
           isSpecial: true,
+          isSignature: true,
           description:
             "Concentrates all alloys into one impossibly sharp, devastating slash.",
         },
@@ -1100,7 +1100,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 50,
     defense: 70,
     speed: 40,
-    weaknesses: ["fire", "psychic", "toxic"],
     learnset: [
       {
         level: 6,
@@ -1122,6 +1121,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "metal",
           accuracy: 80,
           isSpecial: true,
+          isSignature: true,
           description:
             "Drops its entire mass in a gravity-defying crushing blow.",
         },
@@ -1157,7 +1157,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 80,
     defense: 65,
     speed: 65,
-    weaknesses: ["shadow", "metal", "void"],
     learnset: [
       {
         level: 6,
@@ -1179,6 +1178,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "light",
           accuracy: 78,
           isSpecial: true,
+          isSignature: true,
           description:
             "Releases energy comparable to a dying star's final explosion.",
         },
@@ -1212,7 +1212,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 60,
     defense: 70,
     speed: 60,
-    weaknesses: ["shadow", "metal", "void"],
     learnset: [
       {
         level: 6,
@@ -1234,6 +1233,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "light",
           accuracy: 80,
           isSpecial: true,
+          isSignature: true,
           description:
             "Bathes the field in overwhelming celestial light that sears all shadows.",
         },
@@ -1271,7 +1271,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 75,
     defense: 65,
     speed: 55,
-    weaknesses: ["earth", "wind", "psychic"],
     learnset: [
       {
         level: 6,
@@ -1293,6 +1292,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "toxic",
           accuracy: 79,
           isSpecial: true,
+          isSignature: true,
           description:
             "Releases a hyper-virulent toxin that overwhelms all defenses.",
         },
@@ -1328,7 +1328,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 90,
     defense: 65,
     speed: 70,
-    weaknesses: ["earth", "wind", "psychic"],
     learnset: [
       {
         level: 6,
@@ -1350,6 +1349,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "toxic",
           accuracy: 78,
           isSpecial: true,
+          isSignature: true,
           description:
             "Creates a toxic cloud so dense it threatens all life in the area.",
         },
@@ -1386,7 +1386,6 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 100,
     defense: 85,
     speed: 80,
-    weaknesses: ["light"],
     learnset: [
       {
         level: 6,
@@ -1408,6 +1407,7 @@ export const MONSTERS: MonsterDefinition[] = [
           element: "void",
           accuracy: 75,
           isSpecial: true,
+          isSignature: true,
           description:
             "Erases a fragment of existence itself. Nothing survives the void.",
         },

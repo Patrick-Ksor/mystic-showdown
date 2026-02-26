@@ -53,6 +53,16 @@ const NOT_EFFECTIVE: Record<ElementType, ElementType[]> = {
 };
 
 /**
+ * Returns all element types that are super-effective against the given element.
+ * Derived purely from SUPER_EFFECTIVE — no hardcoded per-monster arrays needed.
+ */
+export function getWeaknesses(element: ElementType): ElementType[] {
+  return (Object.keys(SUPER_EFFECTIVE) as ElementType[]).filter((attacker) =>
+    SUPER_EFFECTIVE[attacker].includes(element),
+  );
+}
+
+/**
  * Returns the effectiveness multiplier for a move against a defender.
  * 2.0 = super effective (move element is in defender's weaknesses)
  * 0.5 = not very effective (defender's element resists the move)

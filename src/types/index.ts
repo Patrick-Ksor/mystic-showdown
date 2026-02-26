@@ -99,7 +99,7 @@ export interface Move {
   isSpecial: boolean;
   description: string;
   effect?: MoveEffect;
-  /** True for the highest-level learnset move a monster knows — triggers signature animation */
+  /** Declared in monsters.ts learnset — triggers signature animation when this move is used */
   isSignature?: boolean;
 }
 
@@ -119,7 +119,6 @@ export interface MonsterDefinition {
   speed: number;
   specialMove: Move;
   basicMove: Move;
-  weaknesses: ElementType[];
   learnset: LearnableMove[];
   spriteUrl: string;
   color: string;

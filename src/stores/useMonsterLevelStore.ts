@@ -161,29 +161,16 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
    * Build the full moves array for battle: [basicMove, ...equippedSpecials].
    * For player monsters: uses stored equipped moves.
    * For enemies (isEnemy=true): uses all available moves at level.
+   * isSignature is read directly from the move data defined in monsters.ts.
    */
   function buildMovesArray(
     def: MonsterDefinition,
     level: number,
     isEnemy: boolean,
   ): Move[] {
-    // The signature move is the highest-level learnset move available at the current level
-    const learnableEntries = def.learnset.filter((e) => e.level <= level);
-    const signatureMoveName =
-      learnableEntries.length > 0
-        ? learnableEntries[learnableEntries.length - 1].move.name
-        : null;
-    const tagIfSignature = (m: Move): Move =>
-      signatureMoveName !== null && m.name === signatureMoveName
-        ? { ...m, isSignature: true }
-        : m;
-
     if (isEnemy) {
       const specials = getAvailableSpecials(def, level);
-      return [
-        def.basicMove,
-        ...specials.slice(0, MAX_EQUIPPED_SPECIALS).map(tagIfSignature),
-      ];
+      return [def.basicMove, ...specials.slice(0, MAX_EQUIPPED_SPECIALS)];
     }
 
     const equippedNames = getEquippedMoveNames(def.id);
@@ -199,7 +186,7 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
       .filter((m): m is NonNullable<typeof m> => m !== undefined)
       .slice(0, MAX_EQUIPPED_SPECIALS);
 
-    return [def.basicMove, ...equippedSpecials.map(tagIfSignature)];
+    return [def.basicMove, ...equippedSpecials];
   }
 
   /**

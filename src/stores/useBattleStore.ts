@@ -14,6 +14,7 @@ import type {
 import { MONSTERS } from "@/data/monsters";
 import {
   getEffectivenessMultiplier,
+  getWeaknesses,
   calculateDamage,
   rollCritical,
   STAB_PENALTY,
@@ -397,7 +398,7 @@ export const useBattleStore = defineStore("battle", () => {
     const isCritical = rollCritical();
     const { multiplier, effectiveness } = getEffectivenessMultiplier(
       move.element,
-      defender.weaknesses,
+      getWeaknesses(defender.element),
       defender.element,
     );
 
@@ -636,7 +637,7 @@ export const useBattleStore = defineStore("battle", () => {
             (m) =>
               getEffectivenessMultiplier(
                 m.element,
-                playerMonster.value!.weaknesses,
+                getWeaknesses(playerMonster.value!.element),
                 playerMonster.value!.element,
               ).effectiveness === "super",
           );

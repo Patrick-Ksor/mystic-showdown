@@ -4,6 +4,7 @@ import type { MonsterDefinition, Move } from "@/types";
 import { ELEMENT_COLORS } from "@/types";
 import ElementBadge from "@/components/ui/ElementBadge.vue";
 import { TUTOR_MOVES } from "@/data/tutorMoves";
+import { getWeaknesses } from "@/data/weaknessChart";
 import { MAX_EQUIPPED_SPECIALS } from "@/stores/useMonsterLevelStore";
 
 interface Props {
@@ -355,14 +356,16 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
     </div>
 
     <!-- Weakness -->
-    <div class="flex items-center gap-2 text-xs text-white/40">
-      <font-awesome-icon
-        :icon="['fas', 'triangle-exclamation']"
-        class="text-yellow-500"
-      />
-      Weak to:
+    <div class="flex flex-wrap items-center gap-2 text-xs text-white/40">
+      <span class="flex items-center gap-1.5 shrink-0">
+        <font-awesome-icon
+          :icon="['fas', 'triangle-exclamation']"
+          class="text-yellow-500"
+        />
+        Weak to:
+      </span>
       <ElementBadge
-        v-for="w in props.monster.weaknesses"
+        v-for="w in getWeaknesses(props.monster.element)"
         :key="w"
         :element="w"
         size="sm"
