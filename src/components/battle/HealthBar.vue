@@ -10,6 +10,7 @@ interface Props {
   maxHP: number;
   monsterName: string;
   element: ElementType;
+  secondaryElement?: ElementType | null;
   level: number;
   side: "player" | "enemy";
   statusEffect?: StatusCondition | null;
@@ -130,20 +131,30 @@ onMounted(() => {
     style="min-width: 220px; max-width: 280px"
   >
     <!-- Name and Level -->
-    <div class="flex items-center justify-between mb-1.5">
-      <div class="flex items-center gap-2">
-        <span class="font-bold text-sm text-white">{{
+    <div class="mb-1.5">
+      <div class="flex items-center justify-between gap-1 min-w-0">
+        <span class="font-bold text-sm text-white truncate min-w-0">{{
           props.monsterName
         }}</span>
-        <ElementBadge :element="props.element" size="sm" />
+        <span class="text-xs text-white/50 flex items-center gap-1 shrink-0">
+          <font-awesome-icon
+            :icon="['fas', 'star']"
+            class="text-yellow-400 text-[10px]"
+          />
+          Lv.{{ props.level }}
+        </span>
       </div>
-      <span class="text-xs text-white/50 flex items-center gap-1">
-        <font-awesome-icon
-          :icon="['fas', 'star']"
-          class="text-yellow-400 text-[10px]"
+      <!-- Type badges on their own row -->
+      <div class="flex items-center gap-1 mt-0.5">
+        <ElementBadge
+          :element="props.element"
+          :size="props.secondaryElement ? 'xs' : 'sm'"
         />
-        Lv.{{ props.level }}
-      </span>
+        <template v-if="props.secondaryElement">
+          <span class="text-white/30 text-[9px] leading-none">+</span>
+          <ElementBadge :element="props.secondaryElement" size="xs" />
+        </template>
+      </div>
     </div>
 
     <!-- HP Bar -->

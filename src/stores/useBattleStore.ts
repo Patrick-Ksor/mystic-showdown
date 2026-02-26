@@ -11,6 +11,7 @@ import type {
   StatusCondition,
   DifficultyTier,
 } from "@/types";
+import { EVOLUTION_LEVEL } from "@/types";
 import { MONSTERS } from "@/data/monsters";
 import {
   getEffectivenessMultiplier,
@@ -387,7 +388,11 @@ export const useBattleStore = defineStore("battle", () => {
         effectiveness: "neutral",
         message: `${attacker.name}'s ${move.name} missed!`,
         isSpecial: move.isSpecial,
-        isStab: move.element === attacker.element,
+        isStab:
+          move.element === attacker.element ||
+          (attacker.level >= EVOLUTION_LEVEL &&
+            move.element === attacker.evolution?.secondaryElement),
+        isSignature: move.isSignature ?? false,
       };
       addLog(result.message, "miss");
       lastDamageResult.value = { ...result, target };
@@ -401,8 +406,11 @@ export const useBattleStore = defineStore("battle", () => {
       defender.evolution?.secondaryElement,
     );
 
-    // STAB: same element = full damage; different element = STAB_PENALTY
-    const isStab = move.element === attacker.element;
+    // STAB: same element (or secondary element if evolved) = full damage; otherwise STAB_PENALTY
+    const isStab =
+      move.element === attacker.element ||
+      (attacker.level >= EVOLUTION_LEVEL &&
+        move.element === attacker.evolution?.secondaryElement);
     const stabMultiplier = isStab ? 1.0 : STAB_PENALTY;
 
     // Burn reduces attacker's physical/special output by 25%
@@ -472,6 +480,7 @@ export const useBattleStore = defineStore("battle", () => {
       message,
       isSpecial: move.isSpecial,
       isStab,
+      isSignature: move.isSignature ?? false,
     };
     lastDamageResult.value = { ...result, target };
 

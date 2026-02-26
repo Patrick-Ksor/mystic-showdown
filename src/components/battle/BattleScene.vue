@@ -320,6 +320,15 @@ async function executeEnemyTurn() {
 
   // Animate enemy attack on player
   if (result && playerEl) {
+    // Signature move intro on the enemy sprite
+    if (result.isSignature && enemySpriteRef.value?.el && sceneRef.value) {
+      sfx.playSignatureIntro();
+      await animateSignatureIntro(
+        enemySpriteRef.value.el,
+        enemyMonster.value.element,
+        sceneRef.value
+      );
+    }
     sfx.playAttackLaunch();
     sfx.playElementAccent(enemyMonster.value.element);
     await animateAttack(enemyMonster.value.element, playerEl);
@@ -407,6 +416,11 @@ onBeforeUnmount(() => {
               : enemyMonster.name
           "
           :element="enemyMonster.element"
+          :secondary-element="
+            enemyMonster.level >= EVOLUTION_LEVEL && enemyMonster.evolution
+              ? enemyMonster.evolution.secondaryElement
+              : null
+          "
           :level="enemyMonster.level"
           :status-effect="enemyMonster.statusEffect"
           side="enemy"
@@ -451,6 +465,11 @@ onBeforeUnmount(() => {
               : playerMonster.name
           "
           :element="playerMonster.element"
+          :secondary-element="
+            playerMonster.level >= EVOLUTION_LEVEL && playerMonster.evolution
+              ? playerMonster.evolution.secondaryElement
+              : null
+          "
           :level="playerMonster.level"
           :status-effect="playerMonster.statusEffect"
           side="player"

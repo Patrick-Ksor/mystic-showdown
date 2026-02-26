@@ -203,6 +203,8 @@ export interface DamageResult {
   isSpecial?: boolean;
   /** True when the move element matches the attacker's element (full damage) */
   isStab?: boolean;
+  /** True when the move used was a signature move */
+  isSignature?: boolean;
 }
 
 // ─── Game Mode ───────────────────────────────────────────────

@@ -37,18 +37,18 @@ export const SUPER_EFFECTIVE: Record<ElementType, ElementType[]> = {
 // NOT_EFFECTIVE[moveElement] = defender elements that resist this move.
 //
 const NOT_EFFECTIVE: Record<ElementType, ElementType[]> = {
-  fire: ["water", "earth", "light"],
-  water: ["electric", "nature", "toxic"],
-  electric: ["earth", "ice"],
+  fire: ["water", "earth", "light", "fire"],
+  water: ["electric", "nature", "toxic", "water"],
+  electric: ["earth", "ice", "electric"],
   earth: ["water", "nature"],
-  ice: ["fire", "metal"],
+  ice: ["fire", "metal", "ice"],
   shadow: ["wind", "light"],
   wind: ["electric", "ice"],
   nature: ["fire", "ice", "metal"],
-  psychic: ["shadow", "nature", "toxic"],
-  metal: ["fire", "psychic", "toxic"],
-  light: ["shadow", "metal"],
-  toxic: ["earth", "wind", "psychic"],
+  psychic: ["shadow", "nature", "toxic", "psychic"],
+  metal: ["fire", "psychic", "toxic", "metal"],
+  light: ["shadow", "metal", "light"],
+  toxic: ["earth", "wind", "psychic", "toxic"],
   void: [],
 };
 
@@ -72,38 +72,41 @@ export function getWeaknesses(
 }
 
 /**
+ * Returns the per-type multiplier for a move against a single defender type.
+ * 2.0 = super effective, 0.5 = resisted, 1.0 = neutral
+ */
+function singleTypeMultiplier(
+  moveElement: ElementType,
+  defType: ElementType,
+): number {
+  if (SUPER_EFFECTIVE[moveElement]?.includes(defType)) return 2.0;
+  if (NOT_EFFECTIVE[moveElement]?.includes(defType)) return 0.5;
+  return 1.0;
+}
+
+/**
  * Returns the effectiveness multiplier for a move against a defender.
  * Supports dual-type defenders via optional defenderSecondaryElement.
- * 2.0 = super effective (move element is in defender's combined weaknesses)
- * 0.5 = not very effective (either of the defender's types resists the move)
- * 1.0 = neutral
+ *
+ * Each type's multiplier is calculated independently and then multiplied
+ * together, so a super-effective hit on one type that is resisted by the
+ * other type cancels out to neutral (2.0 × 0.5 = 1.0).
  */
 export function getEffectivenessMultiplier(
   moveElement: ElementType,
   defenderElement: ElementType,
   defenderSecondaryElement?: ElementType,
 ): { multiplier: number; effectiveness: "super" | "resisted" | "neutral" } {
-  const defenderWeaknesses = getWeaknesses(
-    defenderElement,
-    defenderSecondaryElement,
-  );
+  const primary = singleTypeMultiplier(moveElement, defenderElement);
+  const secondary = defenderSecondaryElement
+    ? singleTypeMultiplier(moveElement, defenderSecondaryElement)
+    : 1.0;
 
-  // Super effective: the move element is one of the defender's (combined) weaknesses
-  if (defenderWeaknesses.includes(moveElement)) {
-    return { multiplier: 2.0, effectiveness: "super" };
-  }
+  const combined = primary * secondary;
 
-  // Resisted: either of the defender's types naturally resists this move
-  const resistedByPrimary =
-    NOT_EFFECTIVE[moveElement].includes(defenderElement);
-  const resistedBySecondary =
-    defenderSecondaryElement !== undefined &&
-    NOT_EFFECTIVE[moveElement].includes(defenderSecondaryElement);
-
-  if (resistedByPrimary || resistedBySecondary) {
-    return { multiplier: 0.5, effectiveness: "resisted" };
-  }
-
+  if (combined > 1.0) return { multiplier: combined, effectiveness: "super" };
+  if (combined < 1.0)
+    return { multiplier: combined, effectiveness: "resisted" };
   return { multiplier: 1.0, effectiveness: "neutral" };
 }
 
