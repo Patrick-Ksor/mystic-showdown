@@ -482,7 +482,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 90,
     defense: 65,
     speed: 75,
-    weaknesses: ["wind", "light"],
+    weaknesses: ["wind", "light", "void"],
     learnset: [
       {
         level: 6,
@@ -648,7 +648,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 75,
     defense: 65,
     speed: 65,
-    weaknesses: ["wind", "light"],
+    weaknesses: ["wind", "light", "void"],
     learnset: [
       {
         level: 6,
@@ -932,7 +932,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 90,
     defense: 65,
     speed: 70,
-    weaknesses: ["shadow", "nature", "toxic"],
+    weaknesses: ["shadow", "nature", "toxic", "void"],
     learnset: [
       {
         level: 6,
@@ -988,7 +988,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 70,
     defense: 70,
     speed: 55,
-    weaknesses: ["shadow", "nature", "toxic"],
+    weaknesses: ["shadow", "nature", "toxic", "void"],
     learnset: [
       {
         level: 6,
@@ -1157,7 +1157,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 80,
     defense: 65,
     speed: 65,
-    weaknesses: ["shadow", "metal"],
+    weaknesses: ["shadow", "metal", "void"],
     learnset: [
       {
         level: 6,
@@ -1212,7 +1212,7 @@ export const MONSTERS: MonsterDefinition[] = [
     attack: 60,
     defense: 70,
     speed: 60,
-    weaknesses: ["shadow", "metal"],
+    weaknesses: ["shadow", "metal", "void"],
     learnset: [
       {
         level: 6,

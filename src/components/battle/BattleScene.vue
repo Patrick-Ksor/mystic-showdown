@@ -8,6 +8,7 @@ import type { ActionType } from "@/types";
 import { ELEMENT_COLORS } from "@/types";
 import {
   animateAttack,
+  animateSignatureIntro,
   animateDamage,
   animateEntrance,
   animateFaint,
@@ -128,6 +129,16 @@ async function animatePlayerAttack(
   if (!move) return null;
 
   const enemyEl = enemySpriteRef.value?.el;
+
+  // Signature move intro
+  if (move.isSignature && playerSpriteRef.value?.el && sceneRef.value) {
+    sfx.playSignatureIntro();
+    await animateSignatureIntro(
+      playerSpriteRef.value.el,
+      move.element,
+      sceneRef.value
+    );
+  }
 
   // Play attack launch + element accent on enemy
   if (enemyEl) {

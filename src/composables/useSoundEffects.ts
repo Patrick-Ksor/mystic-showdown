@@ -671,6 +671,169 @@ function playEnemyTurn() {
 // ─── Element Accents ────────────────────────────────────────
 
 /**
+ * Signature move charge-up sequence (~1 s).
+ * Phase 1 (0–0.3 s): deep rumble + rising chromatic sweep builds tension.
+ * Phase 2 (0.3–0.65 s): shimmering held chord with fast tremolo (the "aura" glow).
+ * Phase 3 (0.65 s): sharp distorted burst + pitched impact on the flash hit.
+ */
+function playSignatureIntro() {
+  const ctx = getCtx();
+
+  // ── Phase 1: deep rumble ──────────────────────────────────
+  const gRumble = out(ctx, 1);
+  adsr(
+    gRumble.gain,
+    ctx,
+    { attack: 0.04, decay: 0.0, sustain: 1.0, release: 0.18, peak: v(0.22) },
+    0.62,
+  );
+  const rumbleOsc = osc(
+    ctx,
+    {
+      type: "sawtooth",
+      freq: 55,
+      detune: -6,
+      stopOffset: ctx.currentTime + 0.85,
+    },
+    gRumble,
+  );
+  lfo(ctx, rumbleOsc.frequency, 3, 4, { stopOffset: ctx.currentTime + 0.65 });
+
+  // Sub-bass sine layer
+  const gSub = out(ctx, 1);
+  adsr(
+    gSub.gain,
+    ctx,
+    { attack: 0.06, decay: 0.0, sustain: 1.0, release: 0.2, peak: v(0.18) },
+    0.62,
+  );
+  osc(
+    ctx,
+    { type: "sine", freq: 40, stopOffset: ctx.currentTime + 0.85 },
+    gSub,
+  );
+
+  // Rising chromatic sweep (low → high over 0.6 s)
+  const gSweep = out(ctx, 1);
+  adsr(
+    gSweep.gain,
+    ctx,
+    { attack: 0.06, decay: 0.0, sustain: 0.7, release: 0.14, peak: v(0.16) },
+    0.58,
+  );
+  const sweepOsc = osc(
+    ctx,
+    { type: "sawtooth", freq: 120, stopOffset: ctx.currentTime + 0.75 },
+    gSweep,
+  );
+  freqRamp(sweepOsc, ctx, 120, 880, 0.62);
+
+  // Filtered noise breath
+  const gBreath = out(ctx, 1);
+  adsr(
+    gBreath.gain,
+    ctx,
+    { attack: 0.12, decay: 0.0, sustain: 0.6, release: 0.2, peak: v(0.1) },
+    0.5,
+  );
+  whiteNoise(ctx, 0.72, gBreath, {
+    filterType: "bandpass",
+    filterFreq: 600,
+    filterQ: 1.2,
+  });
+
+  // ── Phase 2: shimmering held aura (0.2 s → 0.65 s) ───────
+  setTimeout(() => {
+    const gChoir = out(ctx, 1);
+    adsr(
+      gChoir.gain,
+      ctx,
+      { attack: 0.1, decay: 0.0, sustain: 1.0, release: 0.22, peak: v(0.14) },
+      0.38,
+    );
+    chord(ctx, [440, 554, 659, 880], "sine", gChoir, 0, 0.52);
+    lfo(ctx, gChoir.gain, 18, v(0.06), { stopOffset: ctx.currentTime + 0.52 });
+
+    const gHi = out(ctx, 1);
+    adsr(
+      gHi.gain,
+      ctx,
+      { attack: 0.08, decay: 0.0, sustain: 0.8, release: 0.18, peak: v(0.1) },
+      0.38,
+    );
+    chord(ctx, [1760, 2200], "triangle", gHi, 0, 0.52);
+    lfo(ctx, gHi.gain, 22, v(0.05), { stopOffset: ctx.currentTime + 0.52 });
+  }, 200);
+
+  // ── Phase 3: burst impact at the flash (0.65 s) ──────────
+  setTimeout(() => {
+    // Hard-clipped distorted crunch
+    const dist = makeDistortion(ctx, 320);
+    dist.connect(ctx.destination);
+    const gCrunch = ctx.createGain();
+    gCrunch.gain.value = 0;
+    adsr(
+      gCrunch.gain,
+      ctx,
+      { attack: 0.002, decay: 0.09, sustain: 0, release: 0, peak: v(0.3) },
+      0.01,
+    );
+    gCrunch.connect(dist);
+    const crunchOsc = osc(
+      ctx,
+      { type: "sawtooth", freq: 180, stopOffset: ctx.currentTime + 0.2 },
+      gCrunch,
+    );
+    freqRamp(crunchOsc, ctx, 180, 60, 0.15);
+
+    // Big pitched impact
+    const gImpact = out(ctx, 1);
+    adsr(
+      gImpact.gain,
+      ctx,
+      { attack: 0.002, decay: 0.18, sustain: 0, release: 0, peak: v(0.28) },
+      0.01,
+    );
+    const impactOsc = osc(
+      ctx,
+      { type: "sine", freq: 110, stopOffset: ctx.currentTime + 0.38 },
+      gImpact,
+    );
+    freqRamp(impactOsc, ctx, 110, 35, 0.25);
+
+    // High shimmer burst
+    const gShimmer = out(ctx, 1);
+    adsr(
+      gShimmer.gain,
+      ctx,
+      { attack: 0.003, decay: 0.12, sustain: 0, release: 0, peak: v(0.18) },
+      0.01,
+    );
+    chord(ctx, [1320, 1760, 2200], "sine", gShimmer, 0, 0.22);
+
+    // Noise blast
+    const gNoise = out(ctx, 1);
+    adsr(
+      gNoise.gain,
+      ctx,
+      { attack: 0.002, decay: 0.1, sustain: 0, release: 0, peak: v(0.22) },
+      0.01,
+    );
+    whiteNoise(ctx, 0.18, gNoise, {
+      filterType: "bandpass",
+      filterFreq: 2000,
+      filterQ: 0.6,
+    });
+
+    void crunchOsc;
+    void impactOsc;
+  }, 650);
+
+  void rumbleOsc;
+  void sweepOsc;
+}
+
+/**
  * Element-flavoured attack accent.
  * If `secondary` is provided, a softer version of that element plays after a brief delay.
  */
@@ -1167,63 +1330,82 @@ function _playElementOnce(
       break;
     }
     case "void": {
-      // Alien beating: two detuned saws + ring-mod pulse + highpass noise tail
-      const gvoid = out(ctx, 1);
+      // The absence of sound: deep sub-bass implosion thud, near-silence breath,
+      // then a faint high spectral shimmer — like reality being swallowed.
+
+      // Sub-bass implosion thud (very low, immediate, heavy)
+      const gThud = out(ctx, 1);
       adsr(
-        gvoid.gain,
+        gThud.gain,
         ctx,
-        {
-          attack: 0.02,
-          decay: 0.08,
-          sustain: 0.6,
-          release: 0.4,
-          peak: vv(0.18),
-        },
-        0.22,
-      );
-      osc(
-        ctx,
-        { type: "sawtooth", freq: 196, stopOffset: ctx.currentTime + 0.65 },
-        gvoid,
-      );
-      osc(
-        ctx,
-        { type: "sawtooth", freq: 244, stopOffset: ctx.currentTime + 0.65 },
-        gvoid,
-      );
-      lfo(ctx, gvoid.gain, 7, vv(0.1), { stopOffset: ctx.currentTime + 0.65 });
-      const gsub = out(ctx, 1);
-      adsr(
-        gsub.gain,
-        ctx,
-        {
-          attack: 0.02,
-          decay: 0.1,
-          sustain: 0.4,
-          release: 0.3,
-          peak: vv(0.12),
-        },
-        0.18,
-      );
-      osc(
-        ctx,
-        { type: "sine", freq: 55, stopOffset: ctx.currentTime + 0.52 },
-        gsub,
-      );
-      const gn = out(ctx, 1);
-      adsr(
-        gn.gain,
-        ctx,
-        { attack: 0.01, decay: 0.2, sustain: 0, release: 0, peak: vv(0.1) },
+        { attack: 0.003, decay: 0.22, sustain: 0, release: 0, peak: vv(0.32) },
         0.01,
-        0.04,
       );
-      whiteNoise(ctx, 0.28, gn, {
-        filterType: "highpass",
-        filterFreq: 3500,
-        filterQ: 0.8,
-        startOffset: 0.04,
+      const thudOsc = osc(
+        ctx,
+        { type: "sine", freq: 42, stopOffset: ctx.currentTime + 0.38 },
+        gThud,
+      );
+      freqRamp(thudOsc, ctx, 42, 18, 0.28);
+
+      // Second lower sub pulse — feels like a black hole pulling
+      const gPulse = out(ctx, 1);
+      adsr(
+        gPulse.gain,
+        ctx,
+        { attack: 0.01, decay: 0.28, sustain: 0, release: 0, peak: vv(0.2) },
+        0.05,
+      );
+      const pulseOsc = osc(
+        ctx,
+        { type: "sawtooth", freq: 28, stopOffset: ctx.currentTime + 0.45 },
+        gPulse,
+      );
+      freqRamp(pulseOsc, ctx, 28, 10, 0.3);
+
+      // Vacuum-like filtered noise breath (lowpass, very quiet — the silence)
+      const gVacuum = out(ctx, 1);
+      adsr(
+        gVacuum.gain,
+        ctx,
+        {
+          attack: 0.04,
+          decay: 0.0,
+          sustain: 1.0,
+          release: 0.3,
+          peak: vv(0.07),
+        },
+        0.42,
+      );
+      whiteNoise(ctx, 0.55, gVacuum, {
+        filterType: "lowpass",
+        filterFreq: 180,
+        filterQ: 0.5,
       });
+
+      // Faint spectral shimmer at the end (a distant high tone, like a ghost)
+      setTimeout(() => {
+        const gShimmer = out(ctx, 1);
+        adsr(
+          gShimmer.gain,
+          ctx,
+          {
+            attack: 0.08,
+            decay: 0.0,
+            sustain: 1.0,
+            release: 0.35,
+            peak: vv(0.06),
+          },
+          0.25,
+        );
+        chord(ctx, [3200, 4000, 5200], "sine", gShimmer, 0, 0.42);
+        lfo(ctx, gShimmer.gain, 6, vv(0.03), {
+          stopOffset: ctx.currentTime + 0.42,
+        });
+      }, 160);
+
+      void thudOsc;
+      void pulseOsc;
       break;
     }
     default: {
@@ -1290,5 +1472,6 @@ export function useSoundEffects() {
     playLevelUp,
     playEnemyTurn,
     playElementAccent,
+    playSignatureIntro,
   };
 }

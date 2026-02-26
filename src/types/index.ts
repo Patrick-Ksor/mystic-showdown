@@ -44,7 +44,7 @@ export const ELEMENT_COLORS: Record<ElementType, string> = {
   metal: "#94a3b8",
   light: "#fbbf24",
   toxic: "#84cc16",
-  void: "#7c3aed",
+  void: "#6d28d9",
 };
 
 export const ACTION_ICONS: Record<ActionType, string> = {
@@ -99,6 +99,8 @@ export interface Move {
   isSpecial: boolean;
   description: string;
   effect?: MoveEffect;
+  /** True for the highest-level learnset move a monster knows — triggers signature animation */
+  isSignature?: boolean;
 }
 
 export interface LearnableMove {
