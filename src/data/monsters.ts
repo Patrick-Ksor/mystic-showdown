@@ -160,6 +160,19 @@ const RAW_MONSTERS: MonsterDefinition[] = [
         },
       },
       {
+        level: 8,
+        move: {
+          name: "Battle Surge",
+          power: 0,
+          element: "fire",
+          accuracy: 100,
+          isSpecial: true,
+          description:
+            "Channels inner ferocity into raw power, sharply raising Attack for 3 turns.",
+          effect: { type: "atk_up", chance: 100 },
+        },
+      },
+      {
         level: 12,
         move: {
           name: "Firestorm Omega",
@@ -213,6 +226,19 @@ const RAW_MONSTERS: MonsterDefinition[] = [
           isSpecial: true,
           description:
             "Fires rapid bolts of lightning from its charged dorsal fin.",
+        },
+      },
+      {
+        level: 8,
+        move: {
+          name: "Surge Draft",
+          power: 0,
+          element: "electric",
+          accuracy: 100,
+          isSpecial: true,
+          description:
+            "Discharges excess static into the legs, sharply raising Speed for 3 turns. All moves hit without fail.",
+          effect: { type: "spd_up", chance: 100 },
         },
       },
       {
@@ -385,6 +411,19 @@ const RAW_MONSTERS: MonsterDefinition[] = [
         },
       },
       {
+        level: 8,
+        move: {
+          name: "Stone Skin",
+          power: 0,
+          element: "earth",
+          accuracy: 100,
+          isSpecial: true,
+          description:
+            "Hardens the hide into dense quartzite, sharply raising Defense for 3 turns.",
+          effect: { type: "def_up", chance: 100 },
+        },
+      },
+      {
         level: 12,
         move: {
           name: "Continental Crush",
@@ -497,6 +536,19 @@ const RAW_MONSTERS: MonsterDefinition[] = [
         },
       },
       {
+        level: 8,
+        move: {
+          name: "Shadow Frenzy",
+          power: 0,
+          element: "shadow",
+          accuracy: 100,
+          isSpecial: true,
+          description:
+            "Consumes ambient darkness to fuel a feral rage, sharply raising Attack for 3 turns.",
+          effect: { type: "atk_up", chance: 100 },
+        },
+      },
+      {
         level: 12,
         move: {
           name: "Oblivion Strike",
@@ -550,6 +602,19 @@ const RAW_MONSTERS: MonsterDefinition[] = [
           isSpecial: true,
           description:
             "Splits the ground along a deep fissure beneath the foe.",
+        },
+      },
+      {
+        level: 8,
+        move: {
+          name: "Stone Skin",
+          power: 0,
+          element: "earth",
+          accuracy: 100,
+          isSpecial: true,
+          description:
+            "Hardens the hide into dense quartzite, sharply raising Defense for 3 turns.",
+          effect: { type: "def_up", chance: 100 },
         },
       },
       {
@@ -720,6 +785,19 @@ const RAW_MONSTERS: MonsterDefinition[] = [
         },
       },
       {
+        level: 8,
+        move: {
+          name: "Tailwind",
+          power: 0,
+          element: "wind",
+          accuracy: 100,
+          isSpecial: true,
+          description:
+            "Generates a powerful tailwind, sharply raising Speed for 3 turns. All moves hit without fail.",
+          effect: { type: "spd_up", chance: 100 },
+        },
+      },
+      {
         level: 12,
         move: {
           name: "Hurricane Wrath",
@@ -772,6 +850,19 @@ const RAW_MONSTERS: MonsterDefinition[] = [
           accuracy: 83,
           isSpecial: true,
           description: "Breaks the sound barrier in a devastating shockwave.",
+        },
+      },
+      {
+        level: 8,
+        move: {
+          name: "Tailwind",
+          power: 0,
+          element: "wind",
+          accuracy: 100,
+          isSpecial: true,
+          description:
+            "Generates a powerful tailwind, sharply raising Speed for 3 turns. All moves hit without fail.",
+          effect: { type: "spd_up", chance: 100 },
         },
       },
       {
@@ -947,6 +1038,19 @@ const RAW_MONSTERS: MonsterDefinition[] = [
         },
       },
       {
+        level: 8,
+        move: {
+          name: "Psi Sharpening",
+          power: 0,
+          element: "psychic",
+          accuracy: 100,
+          isSpecial: true,
+          description:
+            "Focuses all psychic energy inward, sharply raising Attack for 3 turns.",
+          effect: { type: "atk_up", chance: 100 },
+        },
+      },
+      {
         level: 12,
         move: {
           name: "Psychic Annihilation",
@@ -1060,6 +1164,19 @@ const RAW_MONSTERS: MonsterDefinition[] = [
         },
       },
       {
+        level: 8,
+        move: {
+          name: "Iron Guard",
+          power: 0,
+          element: "metal",
+          accuracy: 100,
+          isSpecial: true,
+          description:
+            "Reinforces its plating with adaptive alloy, sharply raising Defense for 3 turns.",
+          effect: { type: "def_up", chance: 100 },
+        },
+      },
+      {
         level: 12,
         move: {
           name: "Titan's Edge",
@@ -1112,6 +1229,19 @@ const RAW_MONSTERS: MonsterDefinition[] = [
           isSpecial: true,
           description:
             "Deploys built-in siege cannons for a devastating salvo.",
+        },
+      },
+      {
+        level: 8,
+        move: {
+          name: "Iron Guard",
+          power: 0,
+          element: "metal",
+          accuracy: 100,
+          isSpecial: true,
+          description:
+            "Reinforces its plating with adaptive alloy, sharply raising Defense for 3 turns.",
+          effect: { type: "def_up", chance: 100 },
         },
       },
       {

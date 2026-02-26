@@ -37,18 +37,18 @@ export const SUPER_EFFECTIVE: Record<ElementType, ElementType[]> = {
 // NOT_EFFECTIVE[moveElement] = defender elements that resist this move.
 //
 const NOT_EFFECTIVE: Record<ElementType, ElementType[]> = {
-  fire: ["water", "earth", "light", "fire"],
-  water: ["electric", "nature", "toxic", "water"],
-  electric: ["earth", "ice", "electric"],
+  fire: ["water", "earth", "light"],
+  water: ["electric", "nature", "toxic"],
+  electric: ["earth", "ice"],
   earth: ["water", "nature"],
-  ice: ["fire", "metal", "ice"],
+  ice: ["fire", "metal"],
   shadow: ["wind", "light"],
   wind: ["electric", "ice"],
   nature: ["fire", "ice", "metal"],
-  psychic: ["shadow", "nature", "toxic", "psychic"],
-  metal: ["fire", "psychic", "toxic", "metal"],
-  light: ["shadow", "metal", "light"],
-  toxic: ["earth", "wind", "psychic", "toxic"],
+  psychic: ["shadow", "nature", "toxic"],
+  metal: ["fire", "psychic", "toxic"],
+  light: ["shadow", "metal"],
+  toxic: ["earth", "wind", "psychic"],
   void: [],
 };
 
@@ -74,11 +74,14 @@ export function getWeaknesses(
 /**
  * Returns the per-type multiplier for a move against a single defender type.
  * 2.0 = super effective, 0.5 = resisted, 1.0 = neutral
+ * Same-type moves always deal reduced (0.5×) damage — checked before the chart.
  */
 function singleTypeMultiplier(
   moveElement: ElementType,
   defType: ElementType,
 ): number {
+  // Universal same-type resistance
+  if (moveElement === defType) return 0.5;
   if (SUPER_EFFECTIVE[moveElement]?.includes(defType)) return 2.0;
   if (NOT_EFFECTIVE[moveElement]?.includes(defType)) return 0.5;
   return 1.0;

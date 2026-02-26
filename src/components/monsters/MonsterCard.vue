@@ -132,7 +132,11 @@ onBeforeUnmount(() => {
       class="w-full aspect-square mb-3 flex items-center justify-center overflow-hidden rounded-lg bg-black/20"
     >
       <img
-        :src="props.monster.spriteUrl"
+        :src="
+          isEvolved && props.monster.evolution?.evolvedSpriteUrl
+            ? props.monster.evolution.evolvedSpriteUrl
+            : props.monster.spriteUrl
+        "
         :alt="props.monster.name"
         class="w-3/4 h-3/4 object-contain drop-shadow-lg transition-[filter] duration-500"
         :style="{ filter: props.isLocked ? undefined : evolvedFilter }"

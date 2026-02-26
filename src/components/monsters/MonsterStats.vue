@@ -145,7 +145,11 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
         class="w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden bg-black/30 border border-white/10"
       >
         <img
-          :src="props.monster.spriteUrl"
+          :src="
+            isEvolved && props.monster.evolution?.evolvedSpriteUrl
+              ? props.monster.evolution.evolvedSpriteUrl
+              : props.monster.spriteUrl
+          "
           :alt="props.monster.name"
           class="w-12 h-12 object-contain"
         />

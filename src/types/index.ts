@@ -64,7 +64,10 @@ export type MoveEffectType =
   | "sleep"
   | "burn"
   | "freeze"
-  | "confusion";
+  | "confusion"
+  | "atk_up"
+  | "def_up"
+  | "spd_up";
 
 export interface MoveEffect {
   type: MoveEffectType;
@@ -85,6 +88,15 @@ export interface TutorMove extends Move {
 // ─── Status Conditions ───────────────────────────────────────
 export interface StatusCondition {
   type: "poison" | "stun" | "sleep" | "burn" | "freeze" | "confusion";
+  turnsLeft: number;
+}
+
+// ─── Stat Buff ───────────────────────────────────────────────
+export type StatBuffStat = "attack" | "defense" | "speed";
+
+export interface StatBuff {
+  stat: StatBuffStat;
+  multiplier: number;
   turnsLeft: number;
 }
 
@@ -118,6 +130,8 @@ export interface EvolutionData {
   ultimateMove: Move;
   /** Optional name change on evolution */
   evolvedName?: string;
+  /** Optional sprite to swap to on evolution */
+  evolvedSpriteUrl?: string;
 }
 
 // ─── Monster Definitions ─────────────────────────────────────
@@ -146,6 +160,7 @@ export interface BattleMonster extends MonsterDefinition {
   xp: number;
   isGuarding: boolean;
   statusEffect: StatusCondition | null;
+  statBuff: StatBuff | null;
   moves: Move[];
 }
 
@@ -183,7 +198,10 @@ export type LogEntryType =
   | "sleep"
   | "burn"
   | "freeze"
-  | "confusion";
+  | "confusion"
+  | "atk_up"
+  | "def_up"
+  | "spd_up";
 
 export interface BattleLogEntry {
   id: number;
@@ -205,6 +223,10 @@ export interface DamageResult {
   isStab?: boolean;
   /** True when the move used was a signature move */
   isSignature?: boolean;
+  /** True when move.power === 0 (buff/utility — no damage intended) */
+  isBuff?: boolean;
+  /** True when the enemy chose to guard instead of attack */
+  isGuard?: boolean;
 }
 
 // ─── Game Mode ───────────────────────────────────────────────

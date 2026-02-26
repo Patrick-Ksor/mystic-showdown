@@ -27,6 +27,9 @@ const typeClasses: Record<string, string> = {
   burn: "text-orange-400",
   freeze: "text-sky-300",
   confusion: "text-fuchsia-400",
+  atk_up: "text-orange-300 font-semibold",
+  def_up: "text-blue-300 font-semibold",
+  spd_up: "text-emerald-300 font-semibold",
 };
 
 const typeIcons: Record<string, string> = {
@@ -44,6 +47,9 @@ const typeIcons: Record<string, string> = {
   burn: "fire",
   freeze: "snowflake",
   confusion: "brain",
+  atk_up: "hand-fist",
+  def_up: "shield-halved",
+  spd_up: "bolt",
 };
 
 watch(

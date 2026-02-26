@@ -1569,6 +1569,33 @@ function toggleMute() {
   isMuted.value = !isMuted.value;
 }
 
+/** Stat boost — rising 3-note arpeggio (sine, ~0.5s) */
+function playStatUp() {
+  const ctx = getCtx();
+  const now = ctx.currentTime;
+  const notes = [523, 659, 784]; // C5, E5, G5
+  notes.forEach((freq, i) => {
+    const g = out(ctx, 1);
+    adsr(
+      g.gain,
+      ctx,
+      { attack: 0.02, decay: 0.05, sustain: 0.6, release: 0.18, peak: v(0.14) },
+      0.15,
+      now + i * 0.12,
+    );
+    osc(
+      ctx,
+      {
+        type: "sine",
+        freq,
+        startOffset: now + i * 0.12,
+        stopOffset: now + i * 0.12 + 0.2,
+      },
+      g,
+    );
+  });
+}
+
 // ─── Public API ─────────────────────────────────────────────
 
 export function useSoundEffects() {
@@ -1593,5 +1620,6 @@ export function useSoundEffects() {
     playElementAccent,
     playSignatureIntro,
     playEvolution,
+    playStatUp,
   };
 }

@@ -1,4 +1,6 @@
 import type { EvolutionData } from "@/types";
+import voltastormSprite from "../assets/sprites/Voltigon-Evo.png";
+import sylphvexSprite from "../assets/sprites/Aerovex-Evo.png";
 
 /**
  * Evolution data keyed by monster ID.
@@ -10,6 +12,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   voltigon: {
     secondaryElement: "wind",
     evolvedName: "Voltastorm",
+    evolvedSpriteUrl: voltastormSprite,
     ultimateMove: {
       name: "Tempest Sovereign",
       power: 140,
@@ -215,6 +218,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   aerovex: {
     secondaryElement: "nature",
     evolvedName: "Sylphvex",
+    evolvedSpriteUrl: sylphvexSprite,
     ultimateMove: {
       name: "Windswept Bloom",
       power: 135,

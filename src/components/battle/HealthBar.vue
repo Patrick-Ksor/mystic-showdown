@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from "vue";
 import gsap from "gsap";
-import type { ElementType, StatusCondition } from "@/types";
+import type { ElementType, StatusCondition, StatBuff } from "@/types";
 import { ELEMENT_COLORS } from "@/types";
 import ElementBadge from "@/components/ui/ElementBadge.vue";
 
@@ -14,6 +14,7 @@ interface Props {
   level: number;
   side: "player" | "enemy";
   statusEffect?: StatusCondition | null;
+  statBuff?: StatBuff | null;
 }
 
 const props = defineProps<Props>();
@@ -81,6 +82,34 @@ const statusMeta = computed(() => {
     },
   };
   return map[props.statusEffect.type] ?? null;
+});
+
+const statBuffMeta = computed(() => {
+  if (!props.statBuff) return null;
+  const map: Record<
+    string,
+    { label: string; icon: string; color: string; bg: string }
+  > = {
+    attack: {
+      label: "ATK\u2191",
+      icon: "hand-fist",
+      color: "#fb923c",
+      bg: "rgb(154 52 18 / 0.35)",
+    },
+    defense: {
+      label: "DEF\u2191",
+      icon: "shield-halved",
+      color: "#60a5fa",
+      bg: "rgb(29 78 216 / 0.35)",
+    },
+    speed: {
+      label: "SPD\u2191",
+      icon: "bolt",
+      color: "#34d399",
+      bg: "rgb(6 95 70 / 0.35)",
+    },
+  };
+  return map[props.statBuff.stat] ?? null;
 });
 
 // Animate HP changes
@@ -181,8 +210,12 @@ onMounted(() => {
     </div>
 
     <!-- Status Badge -->
-    <div v-if="statusMeta" class="mt-1.5 flex items-center gap-1">
+    <div
+      v-if="statusMeta || statBuffMeta"
+      class="mt-1.5 flex flex-wrap items-center gap-1"
+    >
       <span
+        v-if="statusMeta"
         class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border border-white/10"
         :style="{ color: statusMeta.color, backgroundColor: statusMeta.bg }"
       >
@@ -192,6 +225,18 @@ onMounted(() => {
         />
         {{ statusMeta.label }}
         <span class="opacity-60">({{ props.statusEffect!.turnsLeft }})</span>
+      </span>
+      <span
+        v-if="statBuffMeta"
+        class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border border-white/10"
+        :style="{ color: statBuffMeta.color, backgroundColor: statBuffMeta.bg }"
+      >
+        <font-awesome-icon
+          :icon="['fas', statBuffMeta.icon]"
+          class="text-[9px]"
+        />
+        {{ statBuffMeta.label }}
+        <span class="opacity-60">({{ props.statBuff!.turnsLeft }})</span>
       </span>
     </div>
   </div>

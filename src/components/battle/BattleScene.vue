@@ -140,8 +140,8 @@ async function animatePlayerAttack(
     );
   }
 
-  // Play attack launch + element accent on enemy
-  if (enemyEl) {
+  // Play attack launch + element accent on enemy (skip for buff/utility moves)
+  if (enemyEl && move.power > 0) {
     sfx.playAttackLaunch();
     sfx.playElementAccent(move.element, move.secondaryElement);
     await animateAttack(move.element, enemyEl);
@@ -169,7 +169,14 @@ async function animatePlayerAttack(
       ELEMENT_COLORS[move.element]
     );
   } else if (result && result.damage === 0) {
-    sfx.playMiss();
+    if (move.power === 0) {
+      // Buff / utility move — play stat-up sound, animate caster
+      sfx.playStatUp();
+      if (playerSpriteRef.value?.el)
+        await animateGuard(playerSpriteRef.value.el);
+    } else {
+      sfx.playMiss();
+    }
   }
 
   await gsapDelay(0.3);
@@ -329,9 +336,11 @@ async function executeEnemyTurn() {
         sceneRef.value
       );
     }
-    sfx.playAttackLaunch();
-    sfx.playElementAccent(enemyMonster.value.element);
-    await animateAttack(enemyMonster.value.element, playerEl);
+    if (!result.isBuff && !result.isGuard) {
+      sfx.playAttackLaunch();
+      sfx.playElementAccent(enemyMonster.value.element);
+      await animateAttack(enemyMonster.value.element, playerEl);
+    }
     if (result.damage > 0) {
       const playerMaxHP = playerMonster.value?.maxHP ?? 1;
       const playerRatio = result.damage / playerMaxHP;
@@ -352,7 +361,10 @@ async function executeEnemyTurn() {
           ELEMENT_COLORS[enemyMonster.value.element]
         );
       }
-    } else {
+    } else if (result.isBuff) {
+      sfx.playStatUp();
+      if (enemySpriteRef.value?.el) await animateGuard(enemySpriteRef.value.el);
+    } else if (!result.isGuard) {
       sfx.playMiss();
     }
   }
@@ -423,6 +435,7 @@ onBeforeUnmount(() => {
           "
           :level="enemyMonster.level"
           :status-effect="enemyMonster.statusEffect"
+          :stat-buff="enemyMonster.statBuff"
           side="enemy"
         />
       </div>
@@ -472,6 +485,7 @@ onBeforeUnmount(() => {
           "
           :level="playerMonster.level"
           :status-effect="playerMonster.statusEffect"
+          :stat-buff="playerMonster.statBuff"
           side="player"
         />
       </div>

@@ -64,7 +64,11 @@ defineExpose({
     ]"
   >
     <img
-      :src="props.monster.spriteUrl"
+      :src="
+        isEvolved && props.monster.evolution?.evolvedSpriteUrl
+          ? props.monster.evolution.evolvedSpriteUrl
+          : props.monster.spriteUrl
+      "
       :alt="props.monster.name"
       :class="[
         'w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.15)]',

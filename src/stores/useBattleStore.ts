@@ -9,6 +9,7 @@ import type {
   Move,
   MonsterDefinition,
   StatusCondition,
+  StatBuff,
   DifficultyTier,
 } from "@/types";
 import { EVOLUTION_LEVEL } from "@/types";
@@ -46,6 +47,7 @@ function toBattleMonster(
     xp: 0,
     isGuarding: false,
     statusEffect: null,
+    statBuff: null,
     moves,
   };
 }
@@ -97,7 +99,43 @@ export const useBattleStore = defineStore("battle", () => {
     }
   }
 
-  // ─── Move Effect Application ────────────────────────────
+  /** Returns the evolved name if the monster has evolved, otherwise the base name. */
+  function displayName(monster: BattleMonster): string {
+    if (monster.level >= EVOLUTION_LEVEL && monster.evolution?.evolvedName) {
+      return monster.evolution.evolvedName;
+    }
+    return monster.name;
+  }
+
+  // ─── Stat Buff Helpers ──────────────────────────────────────
+  /** Returns the effective attack/defense for damage calc, factoring in statBuff. */
+  function getEffectiveStat(
+    monster: BattleMonster,
+    stat: "attack" | "defense",
+  ): number {
+    const base = stat === "attack" ? monster.attack : monster.defense;
+    if (monster.statBuff?.stat === stat)
+      return Math.round(base * monster.statBuff.multiplier);
+    return base;
+  }
+
+  /** Tick a monster's stat buff. Returns true if the buff just expired. */
+  function tickStatBuff(monster: BattleMonster): void {
+    if (!monster.statBuff) return;
+    monster.statBuff.turnsLeft--;
+    if (monster.statBuff.turnsLeft <= 0) {
+      const labels: Record<string, string> = {
+        attack: "Attack",
+        defense: "Defense",
+        speed: "Speed",
+      };
+      addLog(
+        `${displayName(monster)}'s ${labels[monster.statBuff.stat]} boost faded!`,
+        "system",
+      );
+      monster.statBuff = null;
+    }
+  }
   function applyMoveEffect(
     move: Move,
     attacker: BattleMonster,
@@ -138,7 +176,40 @@ export const useBattleStore = defineStore("battle", () => {
         attacker.maxHP,
         attacker.currentHP + healAmt,
       );
-      addLog(`${attacker.name} recovered ${actual} HP!`, "heal");
+      addLog(`${displayName(attacker)} recovered ${actual} HP!`, "heal");
+      return;
+    }
+
+    // Stat buffs — self-targeting, separate slot from statusEffect
+    if (type === "atk_up" || type === "def_up" || type === "spd_up") {
+      const statMap: Record<string, StatBuff["stat"]> = {
+        atk_up: "attack",
+        def_up: "defense",
+        spd_up: "speed",
+      };
+      const stat = statMap[type];
+      if (attacker.statBuff?.stat === stat) {
+        addLog(
+          `${displayName(attacker)}'s ${stat} is already boosted!`,
+          "system",
+        );
+        return;
+      }
+      attacker.statBuff = { stat, multiplier: 1.5, turnsLeft: 3 };
+      const labelMap: Record<string, string> = {
+        attack: "Attack",
+        defense: "Defense",
+        speed: "Speed",
+      };
+      const logTypeMap: Record<string, BattleLogEntry["type"]> = {
+        atk_up: "atk_up",
+        def_up: "def_up",
+        spd_up: "spd_up",
+      };
+      addLog(
+        `${displayName(attacker)}'s ${labelMap[stat]} rose sharply!`,
+        logTypeMap[type],
+      );
       return;
     }
 
@@ -164,7 +235,10 @@ export const useBattleStore = defineStore("battle", () => {
       freeze: "was frozen solid",
       confusion: "became confused",
     };
-    addLog(`${defender.name} ${labels[type]}!`, type as BattleLogEntry["type"]);
+    addLog(
+      `${displayName(defender)} ${labels[type]}!`,
+      type as BattleLogEntry["type"],
+    );
   }
 
   // ─── Status Tick ─────────────────────────────────────────
@@ -179,32 +253,35 @@ export const useBattleStore = defineStore("battle", () => {
     if (status.type === "poison") {
       const dmg = Math.max(1, Math.floor(monster.maxHP * 0.1));
       monster.currentHP = Math.max(0, monster.currentHP - dmg);
-      addLog(`${monster.name} is hurt by poison! (${dmg} dmg)`, "poison");
+      addLog(
+        `${displayName(monster)} is hurt by poison! (${dmg} dmg)`,
+        "poison",
+      );
       status.turnsLeft--;
       if (status.turnsLeft <= 0) {
         monster.statusEffect = null;
-        addLog(`${monster.name} recovered from poison!`, "system");
+        addLog(`${displayName(monster)} recovered from poison!`, "system");
       }
       if (monster.currentHP <= 0) {
-        addLog(`${monster.name} fainted!`, "system");
+        addLog(`${displayName(monster)} fainted!`, "system");
         phase.value = target === "player" ? "defeat" : "victory";
       }
       return false;
     }
 
     if (status.type === "stun") {
-      addLog(`${monster.name} is stunned and can't move!`, "stun");
+      addLog(`${displayName(monster)} is stunned and can't move!`, "stun");
       status.turnsLeft--;
       if (status.turnsLeft <= 0) monster.statusEffect = null;
       return true;
     }
 
     if (status.type === "sleep") {
-      addLog(`${monster.name} is fast asleep!`, "sleep");
+      addLog(`${displayName(monster)} is fast asleep!`, "sleep");
       status.turnsLeft--;
       if (status.turnsLeft <= 0) {
         monster.statusEffect = null;
-        addLog(`${monster.name} woke up!`, "system");
+        addLog(`${displayName(monster)} woke up!`, "system");
       }
       return true;
     }
@@ -212,14 +289,17 @@ export const useBattleStore = defineStore("battle", () => {
     if (status.type === "burn") {
       const dmg = Math.max(1, Math.floor(monster.maxHP * 0.08));
       monster.currentHP = Math.max(0, monster.currentHP - dmg);
-      addLog(`${monster.name} is hurt by its burn! (${dmg} dmg)`, "burn");
+      addLog(
+        `${displayName(monster)} is hurt by its burn! (${dmg} dmg)`,
+        "burn",
+      );
       status.turnsLeft--;
       if (status.turnsLeft <= 0) {
         monster.statusEffect = null;
-        addLog(`${monster.name}'s burn faded!`, "system");
+        addLog(`${displayName(monster)}'s burn faded!`, "system");
       }
       if (monster.currentHP <= 0) {
-        addLog(`${monster.name} fainted!`, "system");
+        addLog(`${displayName(monster)} fainted!`, "system");
         phase.value = target === "player" ? "defeat" : "victory";
       }
       return false; // burn never skips the turn
@@ -229,14 +309,14 @@ export const useBattleStore = defineStore("battle", () => {
       // 33% chance to thaw early each turn
       if (Math.random() < 0.33) {
         monster.statusEffect = null;
-        addLog(`${monster.name} thawed out!`, "system");
+        addLog(`${displayName(monster)} thawed out!`, "system");
         return false; // acts normally this turn
       }
-      addLog(`${monster.name} is frozen solid!`, "freeze");
+      addLog(`${displayName(monster)} is frozen solid!`, "freeze");
       status.turnsLeft--;
       if (status.turnsLeft <= 0) {
         monster.statusEffect = null;
-        addLog(`${monster.name} gradually thawed out!`, "system");
+        addLog(`${displayName(monster)} gradually thawed out!`, "system");
       }
       return true; // skip turn
     }
@@ -245,7 +325,7 @@ export const useBattleStore = defineStore("battle", () => {
       status.turnsLeft--;
       if (status.turnsLeft <= 0) {
         monster.statusEffect = null;
-        addLog(`${monster.name} snapped out of confusion!`, "system");
+        addLog(`${displayName(monster)} snapped out of confusion!`, "system");
         return false; // acts normally on the turn they snap out
       }
       // 40% chance to hurt itself instead of acting
@@ -253,16 +333,19 @@ export const useBattleStore = defineStore("battle", () => {
         const dmg = Math.max(1, Math.floor(monster.maxHP * 0.06));
         monster.currentHP = Math.max(0, monster.currentHP - dmg);
         addLog(
-          `${monster.name} hurt itself in confusion! (${dmg} dmg)`,
+          `${displayName(monster)} hurt itself in confusion! (${dmg} dmg)`,
           "confusion",
         );
         if (monster.currentHP <= 0) {
-          addLog(`${monster.name} fainted!`, "system");
+          addLog(`${displayName(monster)} fainted!`, "system");
           phase.value = target === "player" ? "defeat" : "victory";
         }
         return true; // skip action
       }
-      addLog(`${monster.name} is confused but pushed through!`, "confusion");
+      addLog(
+        `${displayName(monster)} is confused but pushed through!`,
+        "confusion",
+      );
       return false; // acts normally this turn
     }
 
@@ -272,6 +355,7 @@ export const useBattleStore = defineStore("battle", () => {
   /** Tick player's status. Returns whether their turn should be skipped. */
   function tickPlayerStatus(): { skipped: boolean } {
     if (!playerMonster.value) return { skipped: false };
+    tickStatBuff(playerMonster.value);
     const skipped = tickStatus(playerMonster.value, "player");
     return { skipped };
   }
@@ -343,7 +427,7 @@ export const useBattleStore = defineStore("battle", () => {
     battleLog.value = [];
     logIdCounter = 0;
     addLog(
-      `${playerMonster.value.name} vs ${enemyMonster.value.name}!`,
+      `${displayName(playerMonster.value)} vs ${displayName(enemyMonster.value)}!`,
       "system",
     );
     addLog("The battle begins!", "system");
@@ -379,14 +463,37 @@ export const useBattleStore = defineStore("battle", () => {
     move: Move,
     target: "player" | "enemy",
   ): DamageResult {
-    // Check accuracy
-    const accuracyRoll = Math.random() * 100;
-    if (accuracyRoll > move.accuracy) {
+    // Pure utility moves (power = 0): skip damage calc, just apply effect
+    if (move.power === 0) {
+      addLog(
+        `${displayName(attacker)} used ${move.name}!`,
+        "normal",
+        attacker.color,
+      );
+      applyMoveEffect(move, attacker, defender);
       const result: DamageResult = {
         damage: 0,
         isCritical: false,
         effectiveness: "neutral",
-        message: `${attacker.name}'s ${move.name} missed!`,
+        message: `${attacker.name} used ${move.name}!`,
+        isSpecial: move.isSpecial,
+        isStab: true,
+        isSignature: false,
+        isBuff: true,
+      };
+      lastDamageResult.value = { ...result, target };
+      return result;
+    }
+
+    // Check accuracy (speed buff grants guaranteed hit)
+    const speedBoosted = attacker.statBuff?.stat === "speed";
+    const accuracyRoll = Math.random() * 100;
+    if (!speedBoosted && accuracyRoll > move.accuracy) {
+      const result: DamageResult = {
+        damage: 0,
+        isCritical: false,
+        effectiveness: "neutral",
+        message: `${displayName(attacker)}'s ${move.name} missed!`,
         isSpecial: move.isSpecial,
         isStab:
           move.element === attacker.element ||
@@ -450,8 +557,8 @@ export const useBattleStore = defineStore("battle", () => {
       Math.floor(
         calculateDamage(
           move.power,
-          attacker.attack,
-          defender.defense,
+          getEffectiveStat(attacker, "attack"),
+          getEffectiveStat(defender, "defense"),
           multiplier,
           finalCrit,
           defender.isGuarding,
@@ -471,7 +578,7 @@ export const useBattleStore = defineStore("battle", () => {
     applyMoveEffect(move, attacker, defender);
 
     // Build message
-    let message = `${attacker.name} used ${move.name}! Dealt ${damage} damage!`;
+    let message = `${displayName(attacker)} used ${move.name}! Dealt ${damage} damage!`;
 
     const result: DamageResult = {
       damage,
@@ -514,7 +621,7 @@ export const useBattleStore = defineStore("battle", () => {
     }
 
     if (defender.isGuarding) {
-      addLog(`${defender.name}'s guard softened the blow!`, "guard");
+      addLog(`${displayName(defender)}'s guard softened the blow!`, "guard");
       defender.isGuarding = false;
     }
 
@@ -552,7 +659,10 @@ export const useBattleStore = defineStore("battle", () => {
 
       case "guard":
         playerMonster.value.isGuarding = true;
-        addLog(`${playerMonster.value.name} is bracing for impact!`, "guard");
+        addLog(
+          `${displayName(playerMonster.value)} is bracing for impact!`,
+          "guard",
+        );
         result = {
           damage: 0,
           isCritical: false,
@@ -582,7 +692,7 @@ export const useBattleStore = defineStore("battle", () => {
 
     // Check if enemy fainted
     if (enemyMonster.value.currentHP <= 0) {
-      addLog(`${enemyMonster.value.name} fainted!`, "system");
+      addLog(`${displayName(enemyMonster.value)} fainted!`, "system");
       phase.value = "victory";
       isAnimating.value = false;
       return result;
@@ -605,6 +715,7 @@ export const useBattleStore = defineStore("battle", () => {
     isAnimating.value = true;
 
     // Tick enemy status – skip turn if stunned/asleep
+    tickStatBuff(enemyMonster.value);
     const skipped = tickStatus(enemyMonster.value, "enemy");
     if (skipped || isBattleOver.value) {
       isAnimating.value = false;
@@ -664,12 +775,16 @@ export const useBattleStore = defineStore("battle", () => {
       );
     } else {
       enemyMonster.value.isGuarding = true;
-      addLog(`${enemyMonster.value.name} is bracing for impact!`, "guard");
+      addLog(
+        `${displayName(enemyMonster.value)} is bracing for impact!`,
+        "guard",
+      );
       result = {
         damage: 0,
         isCritical: false,
         effectiveness: "neutral",
         message: "",
+        isGuard: true,
       };
     }
 
@@ -684,14 +799,14 @@ export const useBattleStore = defineStore("battle", () => {
     ) {
       enemyMonster.value.statusEffect = { type: "poison", turnsLeft: 3 };
       addLog(
-        `${enemyMonster.value.name} was pricked by the thorns! (poisoned)`,
+        `${displayName(enemyMonster.value)} was pricked by the thorns! (poisoned)`,
         "poison",
       );
     }
 
     // Check if player fainted
     if (playerMonster.value.currentHP <= 0) {
-      addLog(`${playerMonster.value.name} fainted!`, "system");
+      addLog(`${displayName(playerMonster.value)} fainted!`, "system");
       phase.value = "defeat";
       isAnimating.value = false;
       return result;
