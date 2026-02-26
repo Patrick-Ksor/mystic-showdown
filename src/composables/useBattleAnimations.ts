@@ -571,22 +571,27 @@ export async function animateAttack(
 export async function animateDamage(
   targetEl: HTMLElement,
   isCritical: boolean,
+  damageRatio = 0,
 ): Promise<void> {
-  const intensity = isCritical ? 14 : 8;
+  // Scale intensity with how much HP was removed (0–1)
+  const ratio = Math.min(1, Math.max(0, damageRatio));
+  const shakeDistance = (isCritical ? 14 : 8) + ratio * (isCritical ? 18 : 14);
+  const flashBrightness = 2.0 + ratio * 2.5;
+
   const tl = gsap.timeline();
 
-  // Red flash
+  // Red flash — brighter for big hits
   tl.to(targetEl, {
-    filter: `brightness(2) drop-shadow(0 0 15px #ff2244)`,
+    filter: `brightness(${flashBrightness.toFixed(1)}) drop-shadow(0 0 ${Math.round(15 + ratio * 20)}px #ff2244)`,
     duration: 0.1,
   });
   tl.to(targetEl, { filter: "none", duration: 0.2 });
 
-  // Shake
+  // Shake — wider for big hits
   tl.to(
     targetEl,
     {
-      x: intensity,
+      x: shakeDistance,
       duration: 0.04,
       yoyo: true,
       repeat: isCritical ? 7 : 4,
@@ -595,6 +600,23 @@ export async function animateDamage(
     0,
   );
   tl.set(targetEl, { x: 0 });
+
+  return gsapPromise(tl);
+}
+
+export async function animateScreenShake(
+  sceneEl: HTMLElement,
+  intensity = 1,
+): Promise<void> {
+  const dist = Math.round(7 * intensity);
+  const tl = gsap.timeline();
+
+  // 6-step rapid oscillation on the whole scene
+  const steps = [dist, -dist, dist * 0.7, -dist * 0.7, dist * 0.4, 0];
+  steps.forEach((x) => {
+    tl.to(sceneEl, { x, duration: 0.05, ease: "none" });
+  });
+  tl.set(sceneEl, { x: 0 });
 
   return gsapPromise(tl);
 }

@@ -7,7 +7,9 @@ import { useBattleStore } from "@/stores/useBattleStore";
 import { useGauntletStore } from "@/stores/useGauntletStore";
 import BattleScene from "@/components/battle/BattleScene.vue";
 import GauntletRoundBanner from "@/components/battle/GauntletRoundBanner.vue";
+import PerkPickerOverlay from "@/components/battle/PerkPickerOverlay.vue";
 import { ELEMENT_COLORS } from "@/types";
+import type { RunPerkId } from "@/types";
 import arenaImg from "@/assets/sprites/Arena.png";
 
 const router = useRouter();
@@ -18,7 +20,13 @@ const { playerMonster } = storeToRefs(battleStore);
 // Key changes per round so Vue fully remounts BattleScene between rounds
 const battleKey = ref(1);
 const showStageClear = ref(false);
+const showPerkPicker = ref(false);
 const stageClearRef = ref<HTMLElement | null>(null);
+// Round that just finished — used for perk picker header
+const completedRound = ref(0);
+// Snapshot of offered perks — frozen at the moment the picker opens so
+// addPerk() re-evaluating offeredPerks doesn't reshuffle the visible cards
+const frozenPerks = ref(gauntletStore.offeredPerks);
 
 onMounted(() => {
   if (!gauntletStore.isActive || !gauntletStore.playerMonsterId) {
@@ -45,12 +53,20 @@ async function animateStageClear() {
 }
 
 async function handleVictory() {
+  // Capture player HP before any resets (for score calculation)
+  const finalHP = playerMonster.value?.currentHP ?? 0;
+  const finalMaxHP = playerMonster.value?.maxHP ?? 1;
+  // Accumulate turns from this round before resetting the battle store
+  gauntletStore.accumulateTurns(battleStore.turnCount);
+  completedRound.value = gauntletStore.currentRound;
+
   // Advance round in the store — this unlocks the defeated monster
   // and increments currentRound (or marks isComplete)
   gauntletStore.advanceRound();
 
   if (gauntletStore.isComplete) {
-    // All 3 rounds cleared — head to results
+    // All rounds cleared — compute score then head to results
+    gauntletStore.finalizeScore(finalHP, finalMaxHP);
     await delay(200);
     router.push("/result");
     return;
@@ -60,20 +76,39 @@ async function handleVictory() {
   showStageClear.value = true;
   await animateStageClear();
   await delay(1800);
-
-  // Set up next round - grab next opponent AFTER advanceRound incremented currentRound
-  const nextOpponent = gauntletStore.currentOpponent;
-  battleStore.$reset();
-  if (gauntletStore.playerMonsterId && nextOpponent) {
-    battleStore.selectMonster(gauntletStore.playerMonsterId, nextOpponent);
-  }
-
-  // Bump key to remount BattleScene cleanly
-  battleKey.value = gauntletStore.currentRound;
   showStageClear.value = false;
+
+  // Snapshot the offered perks NOW before showing the picker,
+  // so addPerk() can't re-randomize them while overlay is open
+  frozenPerks.value = gauntletStore.offeredPerks;
+  // Show perk picker — wait for the player to pick
+  showPerkPicker.value = true;
+}
+
+function onPerkPicked(id: RunPerkId) {
+  gauntletStore.addPerk(id);
+  // Small delay so the pick animation is visible before the battle starts
+  setTimeout(() => {
+    showPerkPicker.value = false;
+
+    // Set up next round - grab next opponent AFTER advanceRound incremented currentRound
+    const nextOpponent = gauntletStore.currentOpponent;
+    battleStore.$reset();
+    if (gauntletStore.playerMonsterId && nextOpponent) {
+      battleStore.selectMonster(gauntletStore.playerMonsterId, nextOpponent);
+    }
+
+    // Bump key to remount BattleScene cleanly
+    battleKey.value = gauntletStore.currentRound;
+  }, 420);
 }
 
 async function handleDefeat() {
+  gauntletStore.accumulateTurns(battleStore.turnCount);
+  gauntletStore.finalizeScore(
+    playerMonster.value?.currentHP ?? 0,
+    playerMonster.value?.maxHP ?? 1
+  );
   gauntletStore.handleDefeat();
   await delay(200);
   router.push("/result");
@@ -147,36 +182,26 @@ async function handleDefeat() {
           >
             STAGE CLEAR!
           </h2>
-          <div
-            v-if="gauntletStore.defeatedMonsters.length"
-            class="flex items-center justify-center gap-2 pt-2"
-          >
-            <font-awesome-icon
-              :icon="['fas', 'lock-open']"
-              class="text-purple-400 text-sm"
-            />
-            <span
-              class="text-sm font-bold"
-              :style="{
-                color:
-                  gauntletStore.defeatedMonsters[
-                    gauntletStore.defeatedMonsters.length - 1
-                  ].color,
-              }"
-            >
-              {{
-                gauntletStore.defeatedMonsters[
-                  gauntletStore.defeatedMonsters.length - 1
-                ].name
-              }}
-              unlocked!
-            </span>
-          </div>
           <p class="text-white/40 text-sm mt-4">
             Get ready for Round {{ gauntletStore.currentRound }}...
           </p>
         </div>
       </div>
+    </Transition>
+
+    <!-- Perk picker overlay (between rounds) -->
+    <Transition
+      enter-active-class="transition-opacity duration-300"
+      leave-active-class="transition-opacity duration-300"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
+      <PerkPickerOverlay
+        v-if="showPerkPicker"
+        :perks="frozenPerks"
+        :round="completedRound"
+        @pick="onPerkPicked"
+      />
     </Transition>
   </div>
 </template>

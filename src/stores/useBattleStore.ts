@@ -21,6 +21,7 @@ import {
 import { useProgressionStore } from "@/stores/useProgressionStore";
 import { useMonsterLevelStore } from "@/stores/useMonsterLevelStore";
 import { useGameStore } from "@/stores/useGameStore";
+import { useGauntletStore } from "@/stores/useGauntletStore";
 
 let logIdCounter = 0;
 
@@ -59,6 +60,9 @@ export const useBattleStore = defineStore("battle", () => {
     (DamageResult & { target: "player" | "enemy" }) | null
   >(null);
   const isAnimating = ref(false);
+  // Tracks whether the player has already made an attack move this combat turn
+  // (used by opening_blow perk to guarantee a crit on the first attack each turn)
+  const playerHasAttackedThisTurn = ref(false);
 
   // ─── Getters ─────────────────────────────────────────────
   const isPlayerTurn = computed(() => phase.value === "playerTurn");
@@ -83,8 +87,12 @@ export const useBattleStore = defineStore("battle", () => {
   });
 
   // ─── Actions ─────────────────────────────────────────────
-  function addLog(text: string, type: BattleLogEntry["type"] = "normal") {
-    battleLog.value.push({ id: ++logIdCounter, text, type });
+  function addLog(
+    text: string,
+    type: BattleLogEntry["type"] = "normal",
+    elementColor?: string,
+  ) {
+    battleLog.value.push({ id: ++logIdCounter, text, type, elementColor });
     // Keep only last 50 entries
     if (battleLog.value.length > 50) {
       battleLog.value = battleLog.value.slice(-50);
@@ -99,7 +107,30 @@ export const useBattleStore = defineStore("battle", () => {
   ): void {
     if (!move.effect) return;
     const { type, chance, value } = move.effect;
-    if (Math.random() * 100 > chance) return;
+
+    // Run perk: toxic_aura — boost all status chances by +15%
+    const gauntletStore = useGauntletStore();
+    const perks = gauntletStore.activePerks;
+    const adjustedChance =
+      type !== "heal" && perks.includes("toxic_aura")
+        ? Math.min(100, chance + 15)
+        : chance;
+    if (Math.random() * 100 > adjustedChance) return;
+
+    // Run perk: fireproof — player is immune to burn
+    if (
+      type === "burn" &&
+      defender === playerMonster.value &&
+      perks.includes("fireproof")
+    )
+      return;
+    // Run perk: iron_mind — player is immune to confusion
+    if (
+      type === "confusion" &&
+      defender === playerMonster.value &&
+      perks.includes("iron_mind")
+    )
+      return;
 
     if (type === "heal") {
       const healAmt = Math.floor(((value ?? 25) / 100) * attacker.maxHP);
@@ -311,6 +342,7 @@ export const useBattleStore = defineStore("battle", () => {
     if (!playerMonster.value || !enemyMonster.value) return;
     phase.value = "intro";
     turnCount.value = 0;
+    playerHasAttackedThisTurn.value = false;
     battleLog.value = [];
     logIdCounter = 0;
     addLog(
@@ -323,9 +355,25 @@ export const useBattleStore = defineStore("battle", () => {
   function beginPlayerTurn() {
     phase.value = "playerTurn";
     turnCount.value++;
-    // Clear guarding from previous turn
+    playerHasAttackedThisTurn.value = false;
     if (playerMonster.value) {
+      // Clear guarding from previous turn
       playerMonster.value.isGuarding = false;
+      // Run perk: regeneration — recover 3% max HP each player turn
+      const gauntletStore = useGauntletStore();
+      if (gauntletStore.activePerks.includes("regeneration")) {
+        const healAmt = Math.floor(playerMonster.value.maxHP * 0.03);
+        if (
+          healAmt > 0 &&
+          playerMonster.value.currentHP < playerMonster.value.maxHP
+        ) {
+          playerMonster.value.currentHP = Math.min(
+            playerMonster.value.maxHP,
+            playerMonster.value.currentHP + healAmt,
+          );
+          addLog(`Regeneration — recovered ${healAmt} HP!`, "heal");
+        }
+      }
     }
   }
 
@@ -365,6 +413,38 @@ export const useBattleStore = defineStore("battle", () => {
     // Burn reduces attacker's physical/special output by 25%
     const burnMult = attacker.statusEffect?.type === "burn" ? 0.75 : 1.0;
 
+    // ─── Run Perk Multipliers ────────────────────────────
+    const gauntletStore = useGauntletStore();
+    const perks = gauntletStore.activePerks;
+    const isPlayerAttacking = target === "enemy";
+
+    // opening_blow: first player attack each combat turn is a guaranteed crit
+    const finalCrit =
+      isCritical ||
+      (isPlayerAttacking &&
+        perks.includes("opening_blow") &&
+        !playerHasAttackedThisTurn.value);
+
+    // Mark that the player has now attacked this turn
+    if (isPlayerAttacking) playerHasAttackedThisTurn.value = true;
+
+    // power_surge: player deals +15% damage
+    const powerSurgeMult =
+      isPlayerAttacking && perks.includes("power_surge") ? 1.15 : 1.0;
+
+    // last_stand: player deals +20% when below 30% HP
+    const lastStandMult =
+      isPlayerAttacking &&
+      perks.includes("last_stand") &&
+      playerMonster.value &&
+      playerMonster.value.currentHP / playerMonster.value.maxHP < 0.3
+        ? 1.2
+        : 1.0;
+
+    // battle_hardened: player takes 12% less damage
+    const battleHardenedMult =
+      target === "player" && perks.includes("battle_hardened") ? 0.88 : 1.0;
+
     const damage = Math.max(
       1,
       Math.floor(
@@ -373,11 +453,14 @@ export const useBattleStore = defineStore("battle", () => {
           attacker.attack,
           defender.defense,
           multiplier,
-          isCritical,
+          finalCrit,
           defender.isGuarding,
         ) *
           stabMultiplier *
-          burnMult,
+          burnMult *
+          powerSurgeMult *
+          lastStandMult *
+          battleHardenedMult,
       ),
     );
 
@@ -392,7 +475,7 @@ export const useBattleStore = defineStore("battle", () => {
 
     const result: DamageResult = {
       damage,
-      isCritical,
+      isCritical: finalCrit,
       effectiveness,
       message,
       isSpecial: move.isSpecial,
@@ -400,10 +483,23 @@ export const useBattleStore = defineStore("battle", () => {
     };
     lastDamageResult.value = { ...result, target };
 
-    addLog(message, "normal");
+    addLog(message, "normal", attacker.color);
 
-    if (isCritical) {
+    if (finalCrit) {
       addLog("A critical hit!", "critical");
+      // vampiric_crits: player crits restore 5% max HP
+      if (
+        isPlayerAttacking &&
+        perks.includes("vampiric_crits") &&
+        playerMonster.value
+      ) {
+        const healAmt = Math.floor(playerMonster.value.maxHP * 0.05);
+        playerMonster.value.currentHP = Math.min(
+          playerMonster.value.maxHP,
+          playerMonster.value.currentHP + healAmt,
+        );
+        addLog(`Life drain — recovered ${healAmt} HP!`, "heal");
+      }
     }
 
     if (!isStab) {
@@ -526,6 +622,10 @@ export const useBattleStore = defineStore("battle", () => {
     const roll = Math.random();
     let result: DamageResult | null = null;
 
+    // Run perk: thorny_guard — capture guarding state before the attack clears it
+    const gauntletStore = useGauntletStore();
+    const playerWasGuarding = playerMonster.value?.isGuarding ?? false;
+
     if (roll < attackMax) {
       const moves = enemyMonster.value.moves;
       let selectedMove: Move;
@@ -572,6 +672,22 @@ export const useBattleStore = defineStore("battle", () => {
       };
     }
 
+    // Run perk: thorny_guard — poison attacker when player was guarding
+    if (
+      playerWasGuarding &&
+      result &&
+      result.damage > 0 &&
+      gauntletStore.activePerks.includes("thorny_guard") &&
+      enemyMonster.value &&
+      !enemyMonster.value.statusEffect
+    ) {
+      enemyMonster.value.statusEffect = { type: "poison", turnsLeft: 3 };
+      addLog(
+        `${enemyMonster.value.name} was pricked by the thorns! (poisoned)`,
+        "poison",
+      );
+    }
+
     // Check if player fainted
     if (playerMonster.value.currentHP <= 0) {
       addLog(`${playerMonster.value.name} fainted!`, "system");
@@ -589,6 +705,7 @@ export const useBattleStore = defineStore("battle", () => {
     playerMonster.value = null;
     enemyMonster.value = null;
     turnCount.value = 0;
+    playerHasAttackedThisTurn.value = false;
     battleLog.value = [];
     lastDamageResult.value = null;
     isAnimating.value = false;

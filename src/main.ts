@@ -46,6 +46,9 @@ import {
   faCircleNotch,
   faPaw,
   faMoon,
+  faFireFlameCurved,
+  faCircleCheck,
+  faRankingStar,
 } from "@fortawesome/free-solid-svg-icons";
 
 import router from "./router";
@@ -95,6 +98,9 @@ library.add(
   faCircleNotch,
   faPaw,
   faMoon,
+  faFireFlameCurved,
+  faCircleCheck,
+  faRankingStar,
 );
 
 const app = createApp(App);

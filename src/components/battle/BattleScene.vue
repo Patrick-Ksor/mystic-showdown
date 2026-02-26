@@ -11,7 +11,12 @@ import {
   animateEntrance,
   animateFaint,
   animateGuard,
+  animateScreenShake,
 } from "@/composables/useBattleAnimations";
+import {
+  startBattleMusic,
+  stopBattleMusic,
+} from "@/composables/useBattleMusic";
 import { gsapDelay } from "@/composables/useGsapContext";
 import { useSoundEffects } from "@/composables/useSoundEffects";
 import MonsterSprite from "@/components/monsters/MonsterSprite.vue";
@@ -51,6 +56,7 @@ onMounted(async () => {
   }
 
   battleStore.startBattle();
+  startBattleMusic();
 
   await gsapDelay(0.3);
 
@@ -120,12 +126,16 @@ async function animatePlayerAttack(
 
   // Damage or miss feedback
   if (result && result.damage > 0 && enemyEl) {
+    const enemyMaxHP = enemyMonster.value?.maxHP ?? 1;
+    const enemyRatio = result.damage / enemyMaxHP;
     if (result.isCritical) {
       sfx.playCriticalHit();
+      if (sceneRef.value)
+        void animateScreenShake(sceneRef.value, 1 + enemyRatio);
     } else {
       sfx.playAttackHit(result.isSpecial ?? false);
     }
-    await animateDamage(enemyEl, result.isCritical);
+    await animateDamage(enemyEl, result.isCritical, enemyRatio);
   } else if (result && result.damage === 0) {
     sfx.playMiss();
   }
@@ -137,6 +147,7 @@ async function animatePlayerAttack(
 // ─── Check Victory ─────────────────────────────────────────
 async function checkVictory(): Promise<boolean> {
   if (phase.value === "victory") {
+    stopBattleMusic();
     if (enemySpriteRef.value?.el) {
       sfx.playFaint();
       await animateFaint(enemySpriteRef.value.el);
@@ -153,6 +164,7 @@ async function checkVictory(): Promise<boolean> {
 // ─── Check Defeat ──────────────────────────────────────────
 async function checkDefeat(): Promise<boolean> {
   if (phase.value === "defeat") {
+    stopBattleMusic();
     if (playerSpriteRef.value?.el) {
       sfx.playFaint();
       await animateFaint(playerSpriteRef.value.el);
@@ -277,12 +289,16 @@ async function executeEnemyTurn() {
     sfx.playElementAccent(enemyMonster.value.element);
     await animateAttack(enemyMonster.value.element, playerEl);
     if (result.damage > 0) {
+      const playerMaxHP = playerMonster.value?.maxHP ?? 1;
+      const playerRatio = result.damage / playerMaxHP;
       if (result.isCritical) {
         sfx.playCriticalHit();
+        if (sceneRef.value)
+          void animateScreenShake(sceneRef.value, 1 + playerRatio);
       } else {
         sfx.playAttackHit(result.isSpecial ?? false);
       }
-      await animateDamage(playerEl, result.isCritical);
+      await animateDamage(playerEl, result.isCritical, playerRatio);
     } else {
       sfx.playMiss();
     }

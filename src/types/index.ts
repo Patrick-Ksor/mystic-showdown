@@ -175,6 +175,8 @@ export interface BattleLogEntry {
   id: number;
   text: string;
   type: LogEntryType;
+  /** Optional hex/CSS colour that tints the entry text (used for element-coloured damage lines). */
+  elementColor?: string;
 }
 
 // ─── Damage Result ───────────────────────────────────────────
@@ -213,4 +215,36 @@ export interface GauntletState {
   playerMonsterId: string | null;
   isComplete: boolean;
   isFailed: boolean;
+}
+
+// ─── Run Perks ───────────────────────────────────────────────
+export type RunPerkId =
+  | "vampiric_crits"
+  | "thorny_guard"
+  | "power_surge"
+  | "battle_hardened"
+  | "last_stand"
+  | "toxic_aura"
+  | "opening_blow"
+  | "fireproof"
+  | "iron_mind"
+  | "regeneration";
+
+export interface RunPerkDefinition {
+  id: RunPerkId;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+}
+
+// ─── Leaderboard ─────────────────────────────────────────────
+export interface LeaderboardEntry {
+  score: number;
+  totalTurns: number;
+  roundsCleared: number;
+  difficulty: DifficultyTier;
+  monsterUsed: string;
+  perks: RunPerkId[];
+  date: string;
 }

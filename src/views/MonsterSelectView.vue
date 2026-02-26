@@ -81,7 +81,6 @@ function enterArena() {
 
 function enterGauntlet() {
   if (!selectedId.value) return;
-  if (!gauntletStore.canStartGauntlet) return;
   sfx.playConfirm();
   gauntletStore.startGauntlet(selectedId.value);
   const firstOpponent = gauntletStore.currentOpponent;
@@ -273,15 +272,9 @@ onMounted(() => {
               size="lg"
               icon="hand-fist"
               class="w-full"
-              :disabled="!gauntletStore.canStartGauntlet"
-              :title="
-                !gauntletStore.canStartGauntlet
-                  ? 'Need 3+ locked monsters to start gauntlet'
-                  : undefined
-              "
               @click="enterGauntlet"
             >
-              ⚔ Gauntlet (3 Stages)
+              Gauntlet (4 Stages)
             </BaseButton>
           </div>
         </template>

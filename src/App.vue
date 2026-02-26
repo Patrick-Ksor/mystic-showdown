@@ -1,11 +1,17 @@
 <script setup lang="ts">
+import { computed } from "vue";
+import { useRoute } from "vue-router";
 import MuteToggle from "@/components/ui/MuteToggle.vue";
 import TrainerHUD from "@/components/ui/TrainerHUD.vue";
+
+const route = useRoute();
+const hiddenRoutes = ["/battle", "/gauntlet"];
+const showTrainerHUD = computed(() => !hiddenRoutes.includes(route.path));
 </script>
 
 <template>
   <div class="min-h-screen bg-[#0a0a14]">
-    <TrainerHUD />
+    <TrainerHUD v-if="showTrainerHUD" />
     <MuteToggle />
     <RouterView v-slot="{ Component }">
       <Transition

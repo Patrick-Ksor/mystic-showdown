@@ -12,12 +12,13 @@ import {
   MAX_EQUIPPED_SPECIALS,
 } from "@/stores/useMonsterLevelStore";
 import { MONSTERS } from "@/data/monsters";
+import { PERKS } from "@/data/perks";
 import { useConfetti } from "@/composables/useConfetti";
 import { useSoundEffects } from "@/composables/useSoundEffects";
 import GlowText from "@/components/ui/GlowText.vue";
 import BaseButton from "@/components/ui/BaseButton.vue";
 import { ELEMENT_COLORS } from "@/types";
-import type { Move } from "@/types";
+import type { Move, RunPerkId, LeaderboardEntry } from "@/types";
 
 const router = useRouter();
 const battleStore = useBattleStore();
@@ -60,10 +61,26 @@ const learnedMoveName = ref<string | null>(null);
 const coinsEarned = ref(0);
 const isLeaving = ref(false);
 
+// ─── Gauntlet run score & leaderboard (snapshotted at mount) ─
+const runScore = ref(0);
+const runScoreDisplay = ref(0);
+const runPerks = ref<RunPerkId[]>([]);
+const runTurns = ref(0);
+const runLeaderboard = ref<LeaderboardEntry[]>([]);
+const scoreCardRef = ref<HTMLElement | null>(null);
+
 onMounted(async () => {
   if (!playerMonster.value || !enemyMonster.value) {
     router.push("/");
     return;
+  }
+
+  // Snapshot gauntlet run data before any store resets
+  if (isGauntletResult.value) {
+    runScore.value = gauntletStore.runScore;
+    runPerks.value = [...gauntletStore.activePerks];
+    runTurns.value = gauntletStore.totalTurns;
+    runLeaderboard.value = [...gauntletStore.leaderboard];
   }
 
   // Calculate XP
@@ -197,6 +214,24 @@ onMounted(async () => {
     }
   } else {
     sfx.playDefeat();
+  }
+
+  // Animate run score count-up (gauntlet only)
+  if (isGauntletResult.value && runScore.value > 0) {
+    await delay(200);
+    gsap.to(
+      { val: 0 },
+      {
+        val: runScore.value,
+        duration: 1.5,
+        ease: "power2.out",
+        onUpdate: function () {
+          runScoreDisplay.value = Math.round(
+            (this.targets()[0] as { val: number }).val
+          );
+        },
+      }
+    );
   }
 });
 
@@ -396,8 +431,8 @@ function rematch() {
           >
             {{
               isGauntletComplete
-                ? "Monsters Unlocked"
-                : "Monsters Unlocked So Far"
+                ? "Opponents Defeated"
+                : "Opponents Defeated So Far"
             }}
           </p>
           <div class="flex flex-wrap items-center justify-center gap-2">
@@ -412,7 +447,7 @@ function rematch() {
               }"
             >
               <font-awesome-icon
-                :icon="['fas', 'lock-open']"
+                :icon="['fas', 'shield-halved']"
                 class="text-[10px]"
               />
               {{ m.name }}
@@ -422,6 +457,68 @@ function rematch() {
             Round {{ gauntletStore.currentRound }} /
             {{ gauntletStore.totalRounds }}
           </p>
+        </div>
+
+        <!-- Gauntlet Run Score -->
+        <div
+          v-if="isGauntletResult && runScore > 0"
+          ref="scoreCardRef"
+          class="rounded-xl border border-yellow-400/30 bg-black/30 backdrop-blur-sm p-5 space-y-3"
+        >
+          <p
+            class="text-yellow-300 font-bold text-xs tracking-widest uppercase text-center"
+          >
+            Run Score
+          </p>
+          <p
+            class="text-5xl font-black text-center text-white tabular-nums"
+            style="text-shadow: 0 0 20px rgba(250, 204, 21, 0.5)"
+          >
+            {{ runScoreDisplay.toLocaleString() }}
+          </p>
+          <div
+            class="flex items-center justify-center gap-4 text-xs text-white/50"
+          >
+            <span>
+              <font-awesome-icon :icon="['fas', 'clock']" class="mr-1" />
+              {{ runTurns }} total turns
+            </span>
+            <span>
+              <font-awesome-icon
+                :icon="['fas', 'shield-halved']"
+                class="mr-1"
+              />
+              {{ gauntletStore.defeatedMonsters.length }} /
+              {{ gauntletStore.totalRounds }} rounds
+            </span>
+          </div>
+          <!-- Active perks this run -->
+          <div
+            v-if="runPerks.length"
+            class="flex flex-wrap justify-center gap-1.5 pt-1"
+          >
+            <span
+              v-for="perkId in runPerks"
+              :key="perkId"
+              class="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold border"
+              :style="{
+                color: PERKS.find((p) => p.id === perkId)?.color ?? '#fff',
+                borderColor:
+                  (PERKS.find((p) => p.id === perkId)?.color ?? '#fff') + '44',
+                backgroundColor:
+                  (PERKS.find((p) => p.id === perkId)?.color ?? '#fff') + '15',
+              }"
+            >
+              <font-awesome-icon
+                :icon="[
+                  'fas',
+                  PERKS.find((p) => p.id === perkId)?.icon ?? 'star',
+                ]"
+                class="text-[9px]"
+              />
+              {{ PERKS.find((p) => p.id === perkId)?.name }}
+            </span>
+          </div>
         </div>
 
         <!-- Battle Summary -->
@@ -693,6 +790,63 @@ function rematch() {
             <font-awesome-icon :icon="['fas', 'skull']" class="text-red-400" />
             {{ gameStore.losses }} losses
           </span>
+        </div>
+
+        <!-- Gauntlet Leaderboard -->
+        <div
+          v-if="isGauntletResult && runLeaderboard.length"
+          class="rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm p-5 space-y-3"
+        >
+          <p
+            class="text-white/50 font-bold text-xs tracking-widest uppercase text-center"
+          >
+            <font-awesome-icon
+              :icon="['fas', 'ranking-star']"
+              class="mr-1.5 text-yellow-400"
+            />
+            Leaderboard
+          </p>
+          <div class="space-y-1.5">
+            <div
+              v-for="(entry, i) in runLeaderboard.slice(0, 5)"
+              :key="i"
+              class="flex items-center gap-3 rounded-lg px-3 py-2 text-xs"
+              :class="
+                entry.score === runScore &&
+                entry.monsterUsed === (playerMonster?.id ?? '')
+                  ? 'bg-yellow-500/10 border border-yellow-500/30'
+                  : 'bg-white/5'
+              "
+            >
+              <span
+                class="w-5 text-center font-black"
+                :class="
+                  i === 0
+                    ? 'text-yellow-400'
+                    : i === 1
+                    ? 'text-white/60'
+                    : i === 2
+                    ? 'text-amber-600'
+                    : 'text-white/30'
+                "
+              >
+                {{ i + 1 }}
+              </span>
+              <span class="font-bold text-white tabular-nums flex-1">
+                {{ entry.score.toLocaleString() }}
+              </span>
+              <span class="text-white/40 capitalize">{{
+                entry.difficulty
+              }}</span>
+              <span class="text-white/30"
+                >{{ entry.roundsCleared }}/{{
+                  gauntletStore.totalRounds
+                }}
+                rounds</span
+              >
+              <span class="text-white/25">{{ entry.date }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- Actions -->

@@ -101,8 +101,9 @@ onMounted(() => {
         :key="entry.id"
         :class="[
           'log-entry flex items-start gap-2 text-xs leading-relaxed',
-          typeClasses[entry.type],
+          entry.elementColor ? '' : typeClasses[entry.type],
         ]"
+        :style="entry.elementColor ? { color: entry.elementColor } : {}"
       >
         <font-awesome-icon
           :icon="['fas', typeIcons[entry.type] ?? 'chevron-right']"
