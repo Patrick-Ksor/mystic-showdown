@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import gsap from "gsap";
 import type { MonsterDefinition } from "@/types";
-import { ELEMENT_COLORS } from "@/types";
+import { ELEMENT_COLORS, EVOLUTION_LEVEL } from "@/types";
 import ElementBadge from "@/components/ui/ElementBadge.vue";
 
 interface Props {
@@ -21,6 +21,20 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   select: [id: string];
 }>();
+
+const isEvolved = computed(
+  () => props.level >= EVOLUTION_LEVEL && !!props.monster.evolution
+);
+
+const secondaryElement = computed(() =>
+  isEvolved.value ? props.monster.evolution!.secondaryElement : null
+);
+
+const evolvedFilter = computed(() => {
+  if (!isEvolved.value || !secondaryElement.value) return undefined;
+  const c = ELEMENT_COLORS[secondaryElement.value];
+  return `brightness(1.18) saturate(1.5) drop-shadow(0 0 14px ${c})`;
+});
 
 const cardRef = ref<HTMLElement | null>(null);
 let hoverTween: gsap.core.Tween | null = null;
@@ -120,7 +134,8 @@ onBeforeUnmount(() => {
       <img
         :src="props.monster.spriteUrl"
         :alt="props.monster.name"
-        class="w-3/4 h-3/4 object-contain drop-shadow-lg"
+        class="w-3/4 h-3/4 object-contain drop-shadow-lg transition-[filter] duration-500"
+        :style="{ filter: props.isLocked ? undefined : evolvedFilter }"
       />
     </div>
 
@@ -133,11 +148,26 @@ onBeforeUnmount(() => {
           : ELEMENT_COLORS[props.monster.element],
       }"
     >
-      {{ props.isLocked ? "???" : props.monster.name }}
+      {{
+        props.isLocked
+          ? "???"
+          : isEvolved && props.monster.evolution
+          ? props.monster.evolution.evolvedName
+          : props.monster.name
+      }}
     </h3>
 
-    <!-- Element badge -->
-    <ElementBadge :element="props.monster.element" size="sm" class="mb-2" />
+    <!-- Element badge(s) -->
+    <div class="flex flex-wrap items-center gap-1 mb-2 min-w-0">
+      <ElementBadge
+        :element="props.monster.element"
+        :size="secondaryElement && !props.isLocked ? 'xs' : 'sm'"
+      />
+      <template v-if="!props.isLocked && secondaryElement">
+        <span class="text-white/30 text-[9px] leading-none">+</span>
+        <ElementBadge :element="secondaryElement" size="xs" />
+      </template>
+    </div>
 
     <!-- Mini Stats -->
     <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-white/60">

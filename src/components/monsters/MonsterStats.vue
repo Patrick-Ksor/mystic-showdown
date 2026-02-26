@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { MonsterDefinition, Move } from "@/types";
-import { ELEMENT_COLORS } from "@/types";
+import { ELEMENT_COLORS, EVOLUTION_LEVEL } from "@/types";
 import ElementBadge from "@/components/ui/ElementBadge.vue";
 import { TUTOR_MOVES } from "@/data/tutorMoves";
 import { getWeaknesses } from "@/data/weaknessChart";
@@ -46,6 +46,14 @@ const scaledSPD = computed(() =>
 // Scale bar max denominators by same factor at level 20 for visual consistency
 const maxHP = computed(() =>
   Math.floor(140 * (1 + 0.02 * (props.maxLevel - 1)))
+);
+
+const isEvolved = computed(
+  () => props.level >= EVOLUTION_LEVEL && !!props.monster.evolution
+);
+
+const secondaryElement = computed(() =>
+  isEvolved.value ? props.monster.evolution!.secondaryElement : null
 );
 const maxATK = computed(() =>
   Math.floor(85 * (1 + 0.02 * (props.maxLevel - 1)))
@@ -115,6 +123,16 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
       });
     }
   }
+  // Ultimate move — unlocked at EVOLUTION_LEVEL
+  if (props.monster.evolution) {
+    const ult = props.monster.evolution.ultimateMove;
+    entries.push({
+      move: ult,
+      unlockLevel: EVOLUTION_LEVEL,
+      isUnlocked: props.level >= EVOLUTION_LEVEL,
+      isEquipped: effectiveEquipped.value.includes(ult.name),
+    });
+  }
   return entries;
 });
 </script>
@@ -136,9 +154,18 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
         <div class="flex items-center gap-2">
           <h3
             class="text-lg font-bold"
-            :style="{ color: ELEMENT_COLORS[props.monster.element] }"
+            :style="{
+              color:
+                isEvolved && secondaryElement
+                  ? ELEMENT_COLORS[secondaryElement]
+                  : ELEMENT_COLORS[props.monster.element],
+            }"
           >
-            {{ props.monster.name }}
+            {{
+              isEvolved && props.monster.evolution?.evolvedName
+                ? props.monster.evolution.evolvedName
+                : props.monster.name
+            }}
           </h3>
           <span
             class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-black/40 border border-yellow-400/30 text-[10px] font-bold text-yellow-400"
@@ -147,7 +174,13 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
             Lv.{{ props.level }}
           </span>
         </div>
-        <ElementBadge :element="props.monster.element" size="sm" />
+        <div class="flex items-center gap-1">
+          <ElementBadge :element="props.monster.element" size="sm" />
+          <template v-if="secondaryElement">
+            <span class="text-white/30 text-[9px]">+</span>
+            <ElementBadge :element="secondaryElement" size="sm" />
+          </template>
+        </div>
       </div>
     </div>
 
@@ -365,7 +398,10 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
         Weak to:
       </span>
       <ElementBadge
-        v-for="w in getWeaknesses(props.monster.element)"
+        v-for="w in getWeaknesses(
+          props.monster.element,
+          secondaryElement ?? undefined
+        )"
         :key="w"
         :element="w"
         size="sm"

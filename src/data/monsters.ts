@@ -1,4 +1,5 @@
 import type { MonsterDefinition } from "@/types";
+import { EVOLUTION_DATA } from "./evolutionData";
 import voltigonSprite from "../assets/sprites/Voltigon.png";
 import aquaphantSprite from "../assets/sprites/Aquaphant.png";
 import pyroclashSprite from "../assets/sprites/Pyroclash.png";
@@ -25,7 +26,7 @@ import blightwingSprite from "../assets/sprites/Blightwing.png";
 import quarroxSprite from "../assets/sprites/Quarrox.png";
 import nihiluxSprite from "../assets/sprites/Nihilux.png";
 
-export const MONSTERS: MonsterDefinition[] = [
+const RAW_MONSTERS: MonsterDefinition[] = [
   {
     id: "voltigon",
     name: "Voltigon",
@@ -51,7 +52,7 @@ export const MONSTERS: MonsterDefinition[] = [
         level: 12,
         move: {
           name: "Storm Reckoning",
-          power: 95,
+          power: 115,
           element: "electric",
           accuracy: 80,
           isSpecial: true,
@@ -1436,3 +1437,12 @@ export const MONSTERS: MonsterDefinition[] = [
     },
   },
 ];
+
+/**
+ * All monsters with their evolution data merged in.
+ * At EVOLUTION_LEVEL (15) each monster gains a secondary type and ultimate move.
+ */
+export const MONSTERS: MonsterDefinition[] = RAW_MONSTERS.map((m) => ({
+  ...m,
+  ...(EVOLUTION_DATA[m.id] ? { evolution: EVOLUTION_DATA[m.id] } : {}),
+}));

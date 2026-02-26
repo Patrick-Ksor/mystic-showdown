@@ -1392,3 +1392,132 @@ export async function animateGuard(el: HTMLElement): Promise<void> {
       .to(el, { filter: "none", scale: 1, duration: 0.4 }),
   );
 }
+
+/**
+ * Evolution animation sequence played on the result screen.
+ * secondaryColor = ELEMENT_COLORS[evolution.secondaryElement]
+ */
+export async function animateEvolution(
+  el: HTMLElement,
+  secondaryColor: string,
+): Promise<void> {
+  const parent = el.parentElement;
+
+  // Fullscreen white flash overlay
+  let flash: HTMLDivElement | null = null;
+  if (parent) {
+    flash = document.createElement("div");
+    flash.style.cssText = `position:absolute;inset:-100%;background:white;pointer-events:none;z-index:100;opacity:0;border-radius:inherit;`;
+    parent.appendChild(flash);
+  }
+
+  // Energy ring
+  let ring: HTMLDivElement | null = null;
+  if (parent) {
+    ring = document.createElement("div");
+    ring.style.cssText = `position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      width:80px;height:80px;border-radius:50%;
+      border:3px solid ${secondaryColor};pointer-events:none;z-index:99;opacity:0;`;
+    parent.appendChild(ring);
+  }
+
+  const evolvedFilter = `brightness(1.3) saturate(1.8) drop-shadow(0 0 22px ${secondaryColor}) drop-shadow(0 0 8px white)`;
+
+  const tl = gsap.timeline();
+
+  // Phase 1: charge — pulse scale up + brighten (0–0.6s)
+  tl.to(
+    el,
+    {
+      scale: 1.15,
+      filter: `brightness(2) saturate(2.5)`,
+      duration: 0.5,
+      ease: "power2.in",
+    },
+    0,
+  );
+
+  // Phase 2: energy ring expands (0.4–1.0s)
+  if (ring) {
+    tl.to(
+      ring,
+      {
+        opacity: 1,
+        width: "160px",
+        height: "160px",
+        duration: 0.35,
+        ease: "power2.out",
+      },
+      0.4,
+    );
+    tl.to(
+      ring,
+      {
+        opacity: 0,
+        width: "220px",
+        height: "220px",
+        duration: 0.3,
+        ease: "power1.in",
+        onComplete: () => ring?.remove(),
+      },
+      0.75,
+    );
+  }
+
+  // Phase 3: white flash (0.6–0.85s)
+  if (flash) {
+    tl.to(flash, { opacity: 1, duration: 0.15, ease: "power3.in" }, 0.55);
+    tl.to(
+      flash,
+      {
+        opacity: 0,
+        duration: 0.25,
+        ease: "power1.out",
+        onComplete: () => flash?.remove(),
+      },
+      0.7,
+    );
+  }
+
+  // Phase 4: land in evolved appearance (0.85s+)
+  tl.to(
+    el,
+    {
+      scale: 1.08,
+      filter: evolvedFilter,
+      duration: 0.4,
+      ease: "back.out(2)",
+    },
+    0.82,
+  );
+
+  // Phase 5: sparkle particles (0.9s)
+  if (parent) {
+    for (let i = 0; i < 18; i++) {
+      const p = makeParticle(
+        parent,
+        `position:absolute;width:${rnd(4, 9)}px;height:${rnd(4, 9)}px;border-radius:50%;
+         background:${i % 2 === 0 ? secondaryColor : "white"};
+         top:50%;left:50%;pointer-events:none;z-index:98;
+         box-shadow:0 0 8px ${secondaryColor};`,
+      );
+      const angle = (i / 18) * Math.PI * 2;
+      const dist = rnd(55, 110);
+      gsap.to(p, {
+        x: Math.cos(angle) * dist,
+        y: Math.sin(angle) * dist - rnd(10, 25),
+        opacity: 0,
+        scale: 0,
+        duration: rnd(0.55, 0.9),
+        delay: 0.9,
+        ease: "power2.out",
+        onComplete: () => p.remove(),
+      });
+    }
+  }
+
+  // Phase 6: settle to normal scale, keep evolved filter (1.3s+)
+  tl.to(el, { scale: 1, duration: 0.35, ease: "power2.out" }, 1.25);
+
+  return gsapPromise(tl);
+}

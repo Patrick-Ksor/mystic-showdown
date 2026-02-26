@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import gsap from "gsap";
@@ -17,8 +17,10 @@ import { useConfetti } from "@/composables/useConfetti";
 import { useSoundEffects } from "@/composables/useSoundEffects";
 import GlowText from "@/components/ui/GlowText.vue";
 import BaseButton from "@/components/ui/BaseButton.vue";
-import { ELEMENT_COLORS } from "@/types";
-import type { Move, RunPerkId, LeaderboardEntry } from "@/types";
+import { ELEMENT_COLORS, EVOLUTION_LEVEL } from "@/types";
+import type { Move, RunPerkId, LeaderboardEntry, ElementType } from "@/types";
+import { animateEvolution } from "@/composables/useBattleAnimations";
+import ElementBadge from "@/components/ui/ElementBadge.vue";
 
 const router = useRouter();
 const battleStore = useBattleStore();
@@ -60,6 +62,14 @@ const moveSwapResolved = ref(false);
 const learnedMoveName = ref<string | null>(null);
 const coinsEarned = ref(0);
 const isLeaving = ref(false);
+
+// ─── Evolution ───────────────────────────────────────────────
+const didEvolve = ref(false);
+const showEvolutionOverlay = ref(false);
+const evolutionSpriteRef = ref<HTMLImageElement | null>(null);
+const evolvedName = ref("");
+const evolvedSecondaryElement = ref<ElementType | null>(null);
+const evolvedSecondaryColor = ref("#ffffff");
 
 // ─── Gauntlet run score & leaderboard (snapshotted at mount) ─
 const runScore = ref(0);
@@ -121,6 +131,30 @@ onMounted(async () => {
     );
     monsterDidLevelUp.value = result.didLevelUp;
     monsterNewLevel.value = result.newLevel;
+
+    // Check for evolution
+    if (result.didEvolve) {
+      const def = MONSTERS.find((m) => m.id === playerMonster.value!.id);
+      if (def?.evolution) {
+        evolvedName.value = def.evolution.evolvedName ?? def.name;
+        evolvedSecondaryElement.value = def.evolution.secondaryElement;
+        evolvedSecondaryColor.value =
+          ELEMENT_COLORS[def.evolution.secondaryElement];
+        didEvolve.value = true;
+        sfx.playEvolution();
+        showEvolutionOverlay.value = true;
+        await nextTick();
+        if (evolutionSpriteRef.value) {
+          await animateEvolution(
+            evolutionSpriteRef.value,
+            evolvedSecondaryColor.value
+          );
+        }
+        await delay(800);
+        showEvolutionOverlay.value = false;
+        await delay(400);
+      }
+    }
 
     // Check for newly learnable move
     if (result.newMove) {
@@ -313,6 +347,58 @@ function rematch() {
     ref="containerRef"
     class="min-h-screen flex flex-col items-center justify-center px-4 py-8"
   >
+    <!-- Evolution Overlay -->
+    <Transition
+      enter-active-class="transition-opacity duration-300"
+      leave-active-class="transition-opacity duration-500"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="showEvolutionOverlay"
+        class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-black/96 backdrop-blur-sm"
+      >
+        <p class="text-xs font-bold tracking-[0.35em] uppercase text-white/40">
+          EVOLUTION!
+        </p>
+        <div
+          class="relative flex items-center justify-center w-64 h-64 sm:w-80 sm:h-80"
+        >
+          <img
+            ref="evolutionSpriteRef"
+            :src="playerMonster?.spriteUrl"
+            :alt="playerMonster?.name"
+            class="w-full h-full object-contain"
+            :style="{
+              filter: `drop-shadow(0 0 12px ${playerMonster?.color}66)`,
+            }"
+          />
+        </div>
+        <div class="text-center space-y-3">
+          <GlowText
+            tag="h2"
+            :color="evolvedSecondaryColor"
+            class="text-4xl sm:text-5xl font-black"
+          >
+            {{ evolvedName }}
+          </GlowText>
+          <div
+            v-if="evolvedSecondaryElement"
+            class="flex items-center justify-center gap-2"
+          >
+            <ElementBadge :element="playerMonster!.element" size="sm" />
+            <font-awesome-icon
+              :icon="['fas', 'plus']"
+              class="text-white/30 text-[10px]"
+            />
+            <ElementBadge :element="evolvedSecondaryElement" size="sm" />
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Leave transition overlay -->
     <Transition
       enter-active-class="transition-opacity duration-300"
@@ -677,6 +763,35 @@ function rematch() {
               {{ playerMonster?.name }} is now Lv.{{ monsterNewLevel }}!
               <font-awesome-icon :icon="['fas', 'arrow-up']" />
             </span>
+          </div>
+
+          <!-- Evolution Banner -->
+          <div
+            v-if="didEvolve"
+            class="text-center py-3 px-4 rounded-lg border"
+            :style="{
+              borderColor: evolvedSecondaryColor + '55',
+              backgroundColor: evolvedSecondaryColor + '12',
+            }"
+          >
+            <p
+              class="text-xs font-bold tracking-widest uppercase mb-1"
+              :style="{ color: evolvedSecondaryColor + 'cc' }"
+            >
+              EVOLVED!
+            </p>
+            <p class="text-white font-bold text-sm mb-2">{{ evolvedName }}</p>
+            <div
+              class="flex items-center justify-center gap-2"
+              v-if="evolvedSecondaryElement"
+            >
+              <ElementBadge :element="playerMonster!.element" size="sm" />
+              <font-awesome-icon
+                :icon="['fas', 'plus']"
+                class="text-white/30 text-[9px]"
+              />
+              <ElementBadge :element="evolvedSecondaryElement" size="sm" />
+            </div>
           </div>
 
           <!-- Auto-learned Move Banner -->

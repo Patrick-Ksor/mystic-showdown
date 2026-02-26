@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
 import type { MonsterDefinition, MonsterProgress, Move } from "@/types";
+import { EVOLUTION_LEVEL } from "@/types";
 import { MONSTERS } from "@/data/monsters";
 import { TUTOR_MOVES } from "@/data/tutorMoves";
 
@@ -59,6 +60,11 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
   function getXPToNextLevel(level: number): number {
     if (level >= MAX_LEVEL) return 0;
     return xpForLevel(level);
+  }
+
+  /** Whether a monster has reached EVOLUTION_LEVEL (15) and evolved. */
+  function isEvolved(monsterId: string): boolean {
+    return getLevel(monsterId) >= EVOLUTION_LEVEL;
   }
 
   /**
@@ -154,6 +160,10 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
       const tm = TUTOR_MOVES.find((t) => t.name === name);
       if (tm) specials.push(tm);
     }
+    // Append ultimate move once evolved
+    if (level >= EVOLUTION_LEVEL && def.evolution) {
+      specials.push(def.evolution.ultimateMove);
+    }
     return specials;
   }
 
@@ -180,6 +190,9 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
       ...getTutorMoveNames(def.id)
         .map((name) => TUTOR_MOVES.find((t) => t.name === name))
         .filter((m): m is NonNullable<typeof m> => m !== undefined),
+      ...(level >= EVOLUTION_LEVEL && def.evolution
+        ? [def.evolution.ultimateMove]
+        : []),
     ];
     const equippedSpecials = equippedNames
       .map((name) => allSpecials.find((m) => m.name === name))
@@ -215,18 +228,24 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
    * Calculate how much XP a monster earns from a battle.
    */
   function calculateBattleXP(enemyLevel: number, won: boolean): number {
-    return 30 + enemyLevel * 5 + (won ? 20 : 0);
+    return 530 + enemyLevel * 5 + (won ? 20 : 0);
   }
 
   /**
    * Award XP to a specific monster. Handles level-ups (capped at MAX_LEVEL).
-   * Returns { newLevel, didLevelUp, newMove } where newMove is a learnable
-   * move unlocked during this level-up (if any).
+   * Returns { newLevel, didLevelUp, didEvolve, newMove } where:
+   * - newMove is a learnset move unlocked during this level-up (if any)
+   * - didEvolve is true when the monster crosses EVOLUTION_LEVEL this award
    */
   function awardXP(
     monsterId: string,
     amount: number,
-  ): { newLevel: number; didLevelUp: boolean; newMove: Move | null } {
+  ): {
+    newLevel: number;
+    didLevelUp: boolean;
+    didEvolve: boolean;
+    newMove: Move | null;
+  } {
     const existing = monsterLevels.value.find((m) => m.id === monsterId);
     let progress: MonsterProgress;
 
@@ -241,7 +260,12 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
     }
 
     if (progress.level >= MAX_LEVEL) {
-      return { newLevel: progress.level, didLevelUp: false, newMove: null };
+      return {
+        newLevel: progress.level,
+        didLevelUp: false,
+        didEvolve: false,
+        newMove: null,
+      };
     }
 
     const startLevel = progress.level;
@@ -264,12 +288,22 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
       progress.xp = 0;
     }
 
-    // Check for newly learnable move
-    const newMove = getNewlyLearnableMove(
+    // Check for newly learnable learnset move
+    const newLearnsetMove = getNewlyLearnableMove(
       monsterId,
       startLevel,
       progress.level,
     );
+
+    // Check for evolution crossing EVOLUTION_LEVEL
+    const didEvolve =
+      startLevel < EVOLUTION_LEVEL && progress.level >= EVOLUTION_LEVEL;
+    const def = MONSTERS.find((m) => m.id === monsterId);
+    const evolutionMove =
+      didEvolve && def?.evolution ? def.evolution.ultimateMove : null;
+
+    // If both a learnset move AND the ultimate arrive, prefer the ultimate
+    const newMove = evolutionMove ?? newLearnsetMove;
 
     // Persist
     saveToStorage(monsterLevels.value);
@@ -277,6 +311,7 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
     return {
       newLevel: progress.level,
       didLevelUp: progress.level > startLevel,
+      didEvolve,
       newMove,
     };
   }
@@ -298,6 +333,7 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
     getXP,
     getXPToNextLevel,
     getScaledStats,
+    isEvolved,
     getEquippedMoveNames,
     getAvailableSpecials,
     buildMovesArray,

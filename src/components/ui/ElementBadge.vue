@@ -4,7 +4,7 @@ import { ELEMENT_ICONS, ELEMENT_COLORS } from "@/types";
 
 interface Props {
   element: ElementType;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -12,6 +12,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const sizeClasses: Record<string, string> = {
+  xs: "px-1 py-0.5 text-[9px] gap-0.5",
   sm: "px-1.5 py-0.5 text-[10px] gap-1",
   md: "px-2.5 py-1 text-xs gap-1.5",
   lg: "px-3 py-1.5 text-sm gap-2",

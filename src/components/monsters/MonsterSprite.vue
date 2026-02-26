@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import type { BattleMonster } from "@/types";
+import { ELEMENT_COLORS, EVOLUTION_LEVEL } from "@/types";
 import { animateIdle } from "@/composables/useBattleAnimations";
 
 interface Props {
@@ -12,6 +13,18 @@ const props = defineProps<Props>();
 
 const spriteRef = ref<HTMLElement | null>(null);
 let idleTween: gsap.core.Tween | null = null;
+
+const isEvolved = computed(
+  () => props.monster.level >= EVOLUTION_LEVEL && !!props.monster.evolution
+);
+
+const spriteFilter = computed(() => {
+  const base = `drop-shadow(0 0 10px ${props.monster.color}44)`;
+  if (!isEvolved.value || !props.monster.evolution) return base;
+  const secondaryColor =
+    ELEMENT_COLORS[props.monster.evolution.secondaryElement];
+  return `brightness(1.18) saturate(1.5) drop-shadow(0 0 18px ${secondaryColor}) drop-shadow(0 0 6px ${props.monster.color}66)`;
+});
 
 const statusMeta = computed(() => {
   const s = props.monster.statusEffect;
@@ -58,7 +71,7 @@ defineExpose({
         props.side === 'enemy' ? '' : '',
       ]"
       :style="{
-        filter: `drop-shadow(0 0 10px ${props.monster.color}44)`,
+        filter: spriteFilter,
         transform: props.side === 'enemy' ? 'scaleX(-1)' : undefined,
       }"
     />

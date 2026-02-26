@@ -1446,6 +1446,125 @@ function _playElementOnce(
 
 // ─── Mute control ───────────────────────────────────────────
 
+/** Evolution fanfare — 3 phases:
+ *  1. Low rumble + rising freq sweep (monster "charging up")
+ *  2. Sparkling shimmer layer (crystalline transformation)
+ *  3. Triumphant chord impact + tail
+ */
+function playEvolution() {
+  const ctx = getCtx();
+  const now = ctx.currentTime;
+
+  // Phase 1: sub-bass power rumble (0–0.6s)
+  const rumble = out(ctx, 1);
+  adsr(
+    rumble.gain,
+    ctx,
+    { attack: 0.05, decay: 0.1, sustain: 0.7, release: 0.4, peak: v(0.22) },
+    0.55,
+    now,
+  );
+  freqRamp(
+    osc(ctx, { type: "sine", freq: 55, startOffset: now }, rumble),
+    ctx,
+    55,
+    200,
+    0.6,
+    now,
+  );
+
+  // Sub-harmonic bump
+  const sub = out(ctx, 1);
+  adsr(
+    sub.gain,
+    ctx,
+    { attack: 0.02, decay: 0.3, sustain: 0.0, release: 0.0, peak: v(0.18) },
+    0.32,
+    now,
+  );
+  osc(
+    ctx,
+    { type: "sine", freq: 40, startOffset: now, stopOffset: now + 0.32 },
+    sub,
+  );
+
+  // Phase 2: rising chromatic sweep (0.3–1.5s)
+  const sweep = out(ctx, 1);
+  adsr(
+    sweep.gain,
+    ctx,
+    { attack: 0.08, decay: 0.1, sustain: 0.6, release: 0.5, peak: v(0.12) },
+    1.1,
+    now + 0.3,
+  );
+  freqRamp(
+    osc(ctx, { type: "sine", freq: 200, startOffset: now + 0.3 }, sweep),
+    ctx,
+    200,
+    1600,
+    1.1,
+    now + 0.3,
+  );
+
+  // Phase 2: sparkle shimmer — 3 detuned high sines
+  const sparkleFreqs = [2400, 3200, 4800, 6400];
+  sparkleFreqs.forEach((freq, i) => {
+    const sg = out(ctx, 1);
+    adsr(
+      sg.gain,
+      ctx,
+      {
+        attack: 0.1 + i * 0.06,
+        decay: 0.0,
+        sustain: 0.8,
+        release: 0.6,
+        peak: v(0.05),
+      },
+      0.7,
+      now + 0.5 + i * 0.12,
+    );
+    osc(
+      ctx,
+      {
+        type: "sine",
+        freq,
+        startOffset: now + 0.5 + i * 0.12,
+        stopOffset: now + 1.3 + i * 0.12,
+      },
+      sg,
+    );
+  });
+
+  // Phase 3: triumphant chord impact (1.4s)
+  const impactGain = out(ctx, 1);
+  adsr(
+    impactGain.gain,
+    ctx,
+    { attack: 0.02, decay: 0.2, sustain: 0.5, release: 0.8, peak: v(0.22) },
+    1.0,
+    now + 1.4,
+  );
+  chord(
+    ctx,
+    [523, 659, 784, 1047],
+    "triangle",
+    impactGain,
+    now + 1.4,
+    now + 2.4,
+  );
+
+  // Bright overtone layer
+  const shineGain = out(ctx, 1);
+  adsr(
+    shineGain.gain,
+    ctx,
+    { attack: 0.03, decay: 0.15, sustain: 0.4, release: 0.7, peak: v(0.1) },
+    0.85,
+    now + 1.42,
+  );
+  chord(ctx, [1047, 1319, 1568], "sine", shineGain, now + 1.42, now + 2.27);
+}
+
 function toggleMute() {
   isMuted.value = !isMuted.value;
 }
@@ -1473,5 +1592,6 @@ export function useSoundEffects() {
     playEnemyTurn,
     playElementAccent,
     playSignatureIntro,
+    playEvolution,
   };
 }

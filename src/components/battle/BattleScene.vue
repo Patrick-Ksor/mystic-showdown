@@ -5,7 +5,7 @@ import { useRouter } from "vue-router";
 import gsap from "gsap";
 import { useBattleStore } from "@/stores/useBattleStore";
 import type { ActionType } from "@/types";
-import { ELEMENT_COLORS } from "@/types";
+import { ELEMENT_COLORS, EVOLUTION_LEVEL } from "@/types";
 import {
   animateAttack,
   animateSignatureIntro,
@@ -400,7 +400,12 @@ onBeforeUnmount(() => {
           v-if="enemyMonster"
           :current-h-p="enemyMonster.currentHP"
           :max-h-p="enemyMonster.maxHP"
-          :monster-name="enemyMonster.name"
+          :monster-name="
+            enemyMonster.level >= EVOLUTION_LEVEL &&
+            enemyMonster.evolution?.evolvedName
+              ? enemyMonster.evolution.evolvedName
+              : enemyMonster.name
+          "
           :element="enemyMonster.element"
           :level="enemyMonster.level"
           :status-effect="enemyMonster.statusEffect"
@@ -439,7 +444,12 @@ onBeforeUnmount(() => {
           v-if="playerMonster"
           :current-h-p="playerMonster.currentHP"
           :max-h-p="playerMonster.maxHP"
-          :monster-name="playerMonster.name"
+          :monster-name="
+            playerMonster.level >= EVOLUTION_LEVEL &&
+            playerMonster.evolution?.evolvedName
+              ? playerMonster.evolution.evolvedName
+              : playerMonster.name
+          "
           :element="playerMonster.element"
           :level="playerMonster.level"
           :status-effect="playerMonster.statusEffect"

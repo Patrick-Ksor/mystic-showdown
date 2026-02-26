@@ -108,6 +108,18 @@ export interface LearnableMove {
   move: Move;
 }
 
+// ─── Evolution Data ───────────────────────────────────────────
+export const EVOLUTION_LEVEL = 15;
+
+export interface EvolutionData {
+  /** Secondary element gained on evolution */
+  secondaryElement: ElementType;
+  /** Ultimate move unlocked on evolution (element = secondaryElement) */
+  ultimateMove: Move;
+  /** Optional name change on evolution */
+  evolvedName?: string;
+}
+
 // ─── Monster Definitions ─────────────────────────────────────
 export interface MonsterDefinition {
   id: string;
@@ -123,6 +135,7 @@ export interface MonsterDefinition {
   spriteUrl: string;
   color: string;
   lore: string;
+  evolution?: EvolutionData;
 }
 
 // ─── Battle Monster (runtime state) ─────────────────────────
