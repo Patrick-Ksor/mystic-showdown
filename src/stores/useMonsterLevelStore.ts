@@ -232,7 +232,7 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
    * Calculate how much XP a monster earns from a battle.
    */
   function calculateBattleXP(enemyLevel: number, won: boolean): number {
-    return 530 + enemyLevel * 5 + (won ? 20 : 0);
+    return 30 + enemyLevel * 5 + (won ? 20 : 0);
   }
 
   /**
