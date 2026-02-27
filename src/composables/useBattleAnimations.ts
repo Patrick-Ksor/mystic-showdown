@@ -1158,7 +1158,7 @@ export async function animateEntrance(
     gsap.to(el, {
       x: 0,
       opacity: 1,
-      duration: 0.8,
+      duration: 1.3,
       ease: "back.out(1.4)",
     }),
   );

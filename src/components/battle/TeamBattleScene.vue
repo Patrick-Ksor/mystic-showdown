@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { storeToRefs } from "pinia";
-import { useRouter } from "vue-router";
 import gsap from "gsap";
-import { useBattleStore } from "@/stores/useBattleStore";
+import { useTeamBattleStore } from "@/stores/useTeamBattleStore";
 import type { ActionType, DamageResult } from "@/types";
 import { ELEMENT_COLORS, EVOLUTION_LEVEL } from "@/types";
 import {
@@ -27,22 +26,25 @@ import MonsterSprite from "@/components/monsters/MonsterSprite.vue";
 import HealthBar from "@/components/battle/HealthBar.vue";
 import ActionMenu from "@/components/battle/ActionMenu.vue";
 import BattleLog from "@/components/battle/BattleLog.vue";
+import TeamBench from "@/components/battle/TeamBench.vue";
+import SwitchModal from "@/components/battle/SwitchModal.vue";
 
-const emit = defineEmits<{
-  victory: [];
-  defeat: [];
-}>();
+const emit = defineEmits<{ victory: []; defeat: [] }>();
 
-interface Props {
-  disableRun?: boolean;
-}
-const props = withDefaults(defineProps<Props>(), { disableRun: false });
-
-const router = useRouter();
-const battleStore = useBattleStore();
+const store = useTeamBattleStore();
 const sfx = useSoundEffects();
-const { phase, playerMonster, enemyMonster, battleLog, isPlayerTurn } =
-  storeToRefs(battleStore);
+
+const {
+  phase,
+  playerTeam,
+  enemyTeam,
+  activePlayerIndex,
+  activeEnemyIndex,
+  activePlayer,
+  activeEnemy,
+  battleLog,
+  isPlayerTurn,
+} = storeToRefs(store);
 
 const playerSpriteRef = ref<InstanceType<typeof MonsterSprite> | null>(null);
 const enemySpriteRef = ref<InstanceType<typeof MonsterSprite> | null>(null);
@@ -57,25 +59,19 @@ let stopParticles: (() => void) | null = null;
 
 // ─── Intro Sequence ────────────────────────────────────────
 onMounted(async () => {
-  if (!playerMonster.value || !enemyMonster.value) {
-    router.push("/");
-    return;
-  }
-
   // Hide sprites immediately so they don't flash before the entrance animation
   const playerEl = playerSpriteRef.value?.el;
   const enemyEl = enemySpriteRef.value?.el;
   if (playerEl) gsap.set(playerEl, { opacity: 0 });
   if (enemyEl) gsap.set(enemyEl, { opacity: 0 });
 
-  battleStore.startBattle();
+  store.startBattle();
   startBattleMusic();
 
-  // Start ambient arena particles matching the enemy's element
-  if (particlesContainerRef.value && enemyMonster.value) {
+  if (particlesContainerRef.value && activeEnemy.value) {
     stopParticles = startArenaParticles(
       particlesContainerRef.value,
-      enemyMonster.value.element
+      activeEnemy.value.element
     );
   }
 
@@ -84,21 +80,21 @@ onMounted(async () => {
   if (playerEl && enemyEl) {
     // Player enters — entrance animation and cry fire simultaneously
     void animateEntrance(playerEl, "left");
-    sfx.playMonsterCry(playerMonster.value!);
+    sfx.playMonsterCry(activePlayer.value!);
     await gsapDelay(1.0);
     // Enemy enters — staggered after player
-    sfx.playMonsterCry(enemyMonster.value!);
+    sfx.playMonsterCry(activeEnemy.value!);
     await animateEntrance(enemyEl, "right");
   }
 
-  // Battle start banner
   sfx.playBattleStart();
-  await showBannerAnimation("BATTLE START!");
+  await showBannerAnimation("TEAM BATTLE!");
   await gsapDelay(0.3);
 
-  battleStore.beginPlayerTurn();
+  store.beginPlayerTurn();
 });
 
+// ─── Banner ────────────────────────────────────────────────
 async function showBannerAnimation(text: string) {
   bannerText.value = text;
   showBanner.value = true;
@@ -127,12 +123,14 @@ async function showBannerAnimation(text: string) {
 async function animatePlayerAttack(
   action: ActionType
 ): Promise<DamageResult | null> {
-  if (!playerMonster.value || !enemyMonster.value) return null;
+  if (!activePlayer.value || !activeEnemy.value) return null;
 
   const moveIndex = parseInt(action.replace("move", ""));
-  const move = playerMonster.value.moves[moveIndex];
+  const move = activePlayer.value.moves[moveIndex];
   if (!move) return null;
 
+  // Capture enemy element BEFORE the store action (phase may change inside)
+  const capturedEnemyElement = activeEnemy.value.element;
   const enemyEl = enemySpriteRef.value?.el;
 
   // Signature move intro
@@ -145,18 +143,19 @@ async function animatePlayerAttack(
     );
   }
 
-  // Play attack launch + element accent on enemy (skip for buff/utility moves)
   if (enemyEl && move.power > 0) {
     sfx.playAttackLaunch();
     sfx.playElementAccent(move.element, move.secondaryElement);
     await animateAttack(move.element, enemyEl);
   }
 
-  const result = await battleStore.executePlayerAction(action);
+  // Execute the action — store may set phase to "enemyFainted" or "victory"
+  // but will NOT change activeEnemyIndex yet, so enemySpriteRef still shows
+  // the correct (fainted) monster.
+  const result = await store.executePlayerAction(action);
 
-  // Damage or miss feedback
   if (result && result.damage > 0 && enemyEl) {
-    const enemyMaxHP = enemyMonster.value?.maxHP ?? 1;
+    const enemyMaxHP = activeEnemy.value?.maxHP ?? 1;
     const enemyRatio = result.damage / enemyMaxHP;
     if (result.isCritical) {
       sfx.playCriticalHit();
@@ -175,13 +174,20 @@ async function animatePlayerAttack(
     );
   } else if (result && result.damage === 0) {
     if (move.power === 0) {
-      // Buff / utility move — play stat-up sound, animate caster
       sfx.playStatUp();
       if (playerSpriteRef.value?.el)
         await animateGuard(playerSpriteRef.value.el);
     } else {
       sfx.playMiss();
     }
+  }
+
+  // If enemy fainted mid-team (intermediate switch), animate NOW while
+  // the sprite still shows the fainted monster. The "victory" case (last enemy)
+  // is handled by checkVictory() so we don't double-animate.
+  if (phase.value === "enemyFainted" && enemyEl) {
+    sfx.playFaint();
+    await animateFaint(enemyEl, capturedEnemyElement);
   }
 
   await gsapDelay(0.3);
@@ -194,7 +200,7 @@ async function checkVictory(): Promise<boolean> {
     stopBattleMusic();
     if (enemySpriteRef.value?.el) {
       sfx.playFaint();
-      await animateFaint(enemySpriteRef.value.el, enemyMonster.value?.element);
+      await animateFaint(enemySpriteRef.value.el, activeEnemy.value?.element);
     }
     sfx.playVictory();
     await showBannerAnimation("VICTORY!");
@@ -211,10 +217,7 @@ async function checkDefeat(): Promise<boolean> {
     stopBattleMusic();
     if (playerSpriteRef.value?.el) {
       sfx.playFaint();
-      await animateFaint(
-        playerSpriteRef.value.el,
-        playerMonster.value?.element
-      );
+      await animateFaint(playerSpriteRef.value.el, activePlayer.value?.element);
     }
     sfx.playDefeat();
     await showBannerAnimation("DEFEATED...");
@@ -225,21 +228,60 @@ async function checkDefeat(): Promise<boolean> {
   return false;
 }
 
+// ─── Handle Switch (from SwitchModal) ─────────────────────
+/** After faint animation, actually swap the enemy index then entrance-animate the new sprite. */
+async function doEnemySwitch() {
+  store.resolveEnemyFaint();
+  await nextTick(); // let Vue swap the MonsterSprite key → fresh DOM element
+  const newEl = enemySpriteRef.value?.el;
+  if (newEl) {
+    if (activeEnemy.value) sfx.playMonsterCry(activeEnemy.value);
+    await animateEntrance(newEl, "right");
+  }
+}
+
+/** After the player's active monster faints and we show SwitchModal, play entrance for the incoming. */
+async function doPlayerEntrance() {
+  await nextTick();
+  const newEl = playerSpriteRef.value?.el;
+  if (newEl) {
+    if (activePlayer.value) sfx.playMonsterCry(activePlayer.value);
+    await animateEntrance(newEl, "left");
+  }
+}
+
+async function handleSwitch(idx: number) {
+  if (isProcessing.value) return;
+  isProcessing.value = true;
+  store.switchActiveMonster(idx);
+  await doPlayerEntrance();
+  // Switch counts as the player's action — go straight to enemy turn
+  await gsapDelay(0.2);
+  await executeEnemyTurn();
+  isProcessing.value = false;
+}
+
 // ─── Player Action Handler ─────────────────────────────────
 async function handlePlayerAction(action: ActionType) {
   if (isProcessing.value || phase.value !== "playerTurn") return;
-  if (!playerMonster.value || !enemyMonster.value) return;
+  if (!activePlayer.value || !activeEnemy.value) return;
 
   isProcessing.value = true;
+
   // Tick player status (poison dmg, stun/sleep skip)
-  const { skipped } = battleStore.tickPlayerStatus();
-  if (battleStore.phase === "defeat") {
+  const { skipped } = store.tickPlayerStatus();
+  if (store.phase === "defeat") {
     await checkDefeat();
     isProcessing.value = false;
     return;
   }
-  if (battleStore.phase === "victory") {
-    await checkVictory();
+  if (store.phase === "playerFainted") {
+    // Player's monster fainted from poison before acting
+    if (playerSpriteRef.value?.el) {
+      sfx.playFaint();
+      await animateFaint(playerSpriteRef.value.el, activePlayer.value?.element);
+    }
+    store.resolvePlayerFaint(); // → "switchPrompt"
     isProcessing.value = false;
     return;
   }
@@ -249,70 +291,82 @@ async function handlePlayerAction(action: ActionType) {
     isProcessing.value = false;
     return;
   }
+
   const playerEl = playerSpriteRef.value?.el;
 
   if (action === "guard") {
-    // Guard always resolves before enemy attack
     sfx.playGuard();
     if (playerEl) await animateGuard(playerEl);
-    await battleStore.executePlayerAction(action);
+    await store.executePlayerAction(action);
     await gsapDelay(0.5);
-
     await executeEnemyTurn();
     isProcessing.value = false;
     return;
   }
 
   if (action === "run") {
-    sfx.playRun();
-    await battleStore.executePlayerAction(action);
-    if (phase.value === "select") {
-      router.push("/");
-      isProcessing.value = false;
-      return;
-    }
+    // Team battles disallow running — store will log the message
+    await store.executePlayerAction(action);
     await gsapDelay(0.5);
-
-    await executeEnemyTurn();
+    store.beginPlayerTurn();
     isProcessing.value = false;
     return;
   }
 
-  // Attack action (move0-move3) — speed determines turn order
+  // Attack — speed determines turn order
   const moveIndex = parseInt(action.replace("move", ""));
-  const move = playerMonster.value.moves[moveIndex];
+  const move = activePlayer.value.moves[moveIndex];
   if (!move) {
     isProcessing.value = false;
     return;
   }
 
-  const playerSpeed = playerMonster.value.speed;
-  const enemySpeed = enemyMonster.value.speed;
-  // Tie-break: player goes first when speeds are equal
+  const playerSpeed = activePlayer.value.speed;
+  const enemySpeed = activeEnemy.value.speed;
   const playerFirst = playerSpeed >= enemySpeed;
 
   if (playerFirst) {
-    // Player attacks → check victory → enemy turn
     await animatePlayerAttack(action);
+
+    if (phase.value === "enemyFainted") {
+      // Faint anim already played inside animatePlayerAttack; now switch + entrance
+      await doEnemySwitch();
+      await executeEnemyTurn();
+      isProcessing.value = false;
+      return;
+    }
     if (await checkVictory()) {
       isProcessing.value = false;
       return;
     }
     await executeEnemyTurn();
   } else {
-    // Enemy is faster → enemy attacks first → check defeat → player attacks → check victory
+    // Enemy is faster
     await executeEnemyTurn();
-    if (phase.value === "defeat") {
+    if (
+      phase.value === "defeat" ||
+      phase.value === "switchPrompt" ||
+      phase.value === "playerFainted"
+    ) {
       isProcessing.value = false;
       return;
     }
+
     await animatePlayerAttack(action);
+
+    if (phase.value === "enemyFainted") {
+      // Player KO'd enemy after enemy moved — switch + entrance, then player acts
+      await doEnemySwitch();
+      store.beginPlayerTurn();
+      isProcessing.value = false;
+      return;
+    }
     if (await checkVictory()) {
       isProcessing.value = false;
       return;
     }
-    // Back to player turn (no extra enemy turn)
-    battleStore.beginPlayerTurn();
+
+    store.beginPlayerTurn();
   }
 
   isProcessing.value = false;
@@ -320,34 +374,32 @@ async function handlePlayerAction(action: ActionType) {
 
 // ─── Enemy Turn ────────────────────────────────────────────
 async function executeEnemyTurn() {
-  if (!playerMonster.value || !enemyMonster.value) return;
+  if (!activePlayer.value || !activeEnemy.value) return;
 
   sfx.playEnemyTurn();
-  battleStore.beginEnemyTurn();
-  await gsapDelay(0.6); // Brief pause for drama
+  store.beginEnemyTurn();
+  await gsapDelay(0.6);
 
   const playerEl = playerSpriteRef.value?.el;
 
-  const result = await battleStore.executeEnemyTurn();
+  const result = await store.executeEnemyTurn();
 
-  // Animate enemy attack on player
   if (result && playerEl) {
-    // Signature move intro on the enemy sprite
     if (result.isSignature && enemySpriteRef.value?.el && sceneRef.value) {
       sfx.playSignatureIntro();
       await animateSignatureIntro(
         enemySpriteRef.value.el,
-        enemyMonster.value.element,
+        activeEnemy.value?.element ?? "fire",
         sceneRef.value
       );
     }
     if (!result.isBuff && !result.isGuard) {
       sfx.playAttackLaunch();
-      sfx.playElementAccent(enemyMonster.value.element);
-      await animateAttack(enemyMonster.value.element, playerEl);
+      sfx.playElementAccent(activeEnemy.value?.element ?? "fire");
+      await animateAttack(activeEnemy.value?.element ?? "fire", playerEl);
     }
     if (result.damage > 0) {
-      const playerMaxHP = playerMonster.value?.maxHP ?? 1;
+      const playerMaxHP = activePlayer.value?.maxHP ?? 1;
       const playerRatio = result.damage / playerMaxHP;
       if (result.isCritical) {
         sfx.playCriticalHit();
@@ -357,13 +409,13 @@ async function executeEnemyTurn() {
         sfx.playAttackHit(result.isSpecial ?? false);
       }
       await animateDamage(playerEl, result.isCritical, playerRatio);
-      if (enemyMonster.value) {
+      if (activeEnemy.value) {
         void spawnDamageNumber(
           playerEl,
           result.damage,
           result.isCritical,
           result.effectiveness,
-          ELEMENT_COLORS[enemyMonster.value.element]
+          ELEMENT_COLORS[activeEnemy.value.element]
         );
       }
     } else if (result.isBuff) {
@@ -376,13 +428,33 @@ async function executeEnemyTurn() {
 
   await gsapDelay(0.3);
 
-  // Check for defeat
-  if (await checkDefeat()) return;
-  // Check for victory (e.g. enemy fainted from poison)
+  // Enemy may have fainted from poison/burn during its own status tick
+  if (phase.value === "enemyFainted") {
+    if (enemySpriteRef.value?.el) {
+      sfx.playFaint();
+      await animateFaint(enemySpriteRef.value.el, activeEnemy.value?.element);
+    }
+    await doEnemySwitch();
+    store.beginPlayerTurn();
+    return;
+  }
   if (await checkVictory()) return;
 
-  // Back to player turn
-  battleStore.beginPlayerTurn();
+  // Player monster fainted — animate before showing the switch prompt
+  if (phase.value === "playerFainted") {
+    if (playerSpriteRef.value?.el) {
+      sfx.playFaint();
+      await animateFaint(playerSpriteRef.value.el, activePlayer.value?.element);
+    }
+    store.resolvePlayerFaint(); // → sets "switchPrompt" (SwitchModal takes over)
+    return;
+  }
+  if (await checkDefeat()) return;
+
+  // phase may be "switchPrompt" already — SwitchModal handles it; do nothing
+  if (phase.value === "switchPrompt") return;
+
+  store.beginPlayerTurn();
 }
 
 // Cleanup
@@ -394,14 +466,14 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="sceneRef" class="battle-scene relative w-full h-full flex flex-col">
-    <!-- Arena ambient particles (z-0, behind everything) -->
+    <!-- Arena ambient particles -->
     <div
       ref="particlesContainerRef"
       class="absolute inset-0 pointer-events-none overflow-hidden"
       style="z-index: 0"
     />
 
-    <!-- Top Banner (BATTLE START / VICTORY / DEFEATED) -->
+    <!-- Top Banner -->
     <div
       v-if="showBanner"
       class="absolute inset-0 z-40 flex items-center justify-center pointer-events-none"
@@ -419,36 +491,45 @@ onBeforeUnmount(() => {
 
     <!-- Enemy Section -->
     <div
-      class="flex-1 flex flex-col sm:flex-row items-center justify-center gap-4 px-4 pt-4 sm:pt-8"
+      class="flex-1 flex flex-col sm:flex-row items-center justify-center gap-3 px-4 pt-3 sm:pt-6"
     >
-      <div class="order-2 sm:order-1">
-        <HealthBar
-          v-if="enemyMonster"
-          :current-h-p="enemyMonster.currentHP"
-          :max-h-p="enemyMonster.maxHP"
-          :monster-name="
-            enemyMonster.level >= EVOLUTION_LEVEL &&
-            enemyMonster.evolution?.evolvedName
-              ? enemyMonster.evolution.evolvedName
-              : enemyMonster.name
-          "
-          :element="enemyMonster.element"
-          :secondary-element="
-            enemyMonster.level >= EVOLUTION_LEVEL && enemyMonster.evolution
-              ? enemyMonster.evolution.secondaryElement
-              : null
-          "
-          :level="enemyMonster.level"
-          :status-effect="enemyMonster.statusEffect"
-          :stat-buff="enemyMonster.statBuff"
+      <!-- Enemy bench (above sprite on mobile, left on desktop) -->
+      <div class="order-3 sm:order-1 w-full sm:w-auto">
+        <TeamBench
+          :team="enemyTeam"
+          :active-index="activeEnemyIndex"
           side="enemy"
         />
       </div>
-      <div class="order-1 sm:order-2 relative">
+      <div class="order-2">
+        <HealthBar
+          v-if="activeEnemy"
+          :current-h-p="activeEnemy.currentHP"
+          :max-h-p="activeEnemy.maxHP"
+          :monster-name="
+            activeEnemy.level >= EVOLUTION_LEVEL &&
+            activeEnemy.evolution?.evolvedName
+              ? activeEnemy.evolution.evolvedName
+              : activeEnemy.name
+          "
+          :element="activeEnemy.element"
+          :secondary-element="
+            activeEnemy.level >= EVOLUTION_LEVEL && activeEnemy.evolution
+              ? activeEnemy.evolution.secondaryElement
+              : null
+          "
+          :level="activeEnemy.level"
+          :status-effect="activeEnemy.statusEffect"
+          :stat-buff="activeEnemy.statBuff"
+          side="enemy"
+        />
+      </div>
+      <div class="order-1 sm:order-3 relative">
         <MonsterSprite
-          v-if="enemyMonster"
+          v-if="activeEnemy"
+          :key="activeEnemyIndex"
           ref="enemySpriteRef"
-          :monster="enemyMonster"
+          :monster="activeEnemy"
           side="enemy"
         />
       </div>
@@ -461,51 +542,68 @@ onBeforeUnmount(() => {
 
     <!-- Player Section -->
     <div
-      class="flex-1 flex flex-col sm:flex-row items-center justify-center gap-4 px-4 pb-2"
+      class="flex-1 flex flex-col sm:flex-row items-center justify-center gap-3 px-4 pb-2"
     >
       <div class="relative">
         <MonsterSprite
-          v-if="playerMonster"
+          v-if="activePlayer"
+          :key="activePlayerIndex"
           ref="playerSpriteRef"
-          :monster="playerMonster"
+          :monster="activePlayer"
           side="player"
         />
       </div>
       <div>
         <HealthBar
-          v-if="playerMonster"
-          :current-h-p="playerMonster.currentHP"
-          :max-h-p="playerMonster.maxHP"
+          v-if="activePlayer"
+          :current-h-p="activePlayer.currentHP"
+          :max-h-p="activePlayer.maxHP"
           :monster-name="
-            playerMonster.level >= EVOLUTION_LEVEL &&
-            playerMonster.evolution?.evolvedName
-              ? playerMonster.evolution.evolvedName
-              : playerMonster.name
+            activePlayer.level >= EVOLUTION_LEVEL &&
+            activePlayer.evolution?.evolvedName
+              ? activePlayer.evolution.evolvedName
+              : activePlayer.name
           "
-          :element="playerMonster.element"
+          :element="activePlayer.element"
           :secondary-element="
-            playerMonster.level >= EVOLUTION_LEVEL && playerMonster.evolution
-              ? playerMonster.evolution.secondaryElement
+            activePlayer.level >= EVOLUTION_LEVEL && activePlayer.evolution
+              ? activePlayer.evolution.secondaryElement
               : null
           "
-          :level="playerMonster.level"
-          :status-effect="playerMonster.statusEffect"
-          :stat-buff="playerMonster.statBuff"
+          :level="activePlayer.level"
+          :status-effect="activePlayer.statusEffect"
+          :stat-buff="activePlayer.statBuff"
+          side="player"
+        />
+      </div>
+      <!-- Player bench (below sprite) -->
+      <div class="w-full sm:w-auto">
+        <TeamBench
+          :team="playerTeam"
+          :active-index="activePlayerIndex"
           side="player"
         />
       </div>
     </div>
 
-    <!-- Bottom Section: Battle Log + Action Menu -->
+    <!-- Bottom: Battle Log + Action Menu -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 px-4 pb-4 shrink-0">
       <BattleLog :entries="battleLog" />
       <ActionMenu
-        v-if="playerMonster"
-        :monster="playerMonster"
+        v-if="activePlayer"
+        :monster="activePlayer"
         :disabled="!isPlayerTurn || isProcessing"
-        :disable-run="props.disableRun"
+        :disable-run="true"
         @action="handlePlayerAction"
       />
     </div>
+
+    <!-- Switch Modal overlay (when active player faints and team has survivors) -->
+    <SwitchModal
+      v-if="phase === 'switchPrompt'"
+      :team="playerTeam"
+      :active-index="activePlayerIndex"
+      @switch="handleSwitch"
+    />
   </div>
 </template>

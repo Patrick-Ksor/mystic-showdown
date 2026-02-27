@@ -111,7 +111,10 @@ onMounted(async () => {
         newlyUnlocked.value = enemyMonster.value.name;
       }
     }
-
+    // Mark gauntlet complete on first finished run (unlocks Team Battle)
+    if (isGauntletComplete.value) {
+      progressionStore.markGauntletComplete();
+    }
     isTournamentChampion.value = progressionStore.isTournamentComplete;
   } else {
     gameStore.recordLoss();
@@ -397,7 +400,7 @@ function rematch() {
           >
             <ElementBadge :element="playerMonster!.element" size="sm" />
             <font-awesome-icon
-              :icon="['fas', 'plus']"
+              :icon="['fas', 'circle-plus']"
               class="text-white/30 text-[10px]"
             />
             <ElementBadge :element="evolvedSecondaryElement" size="sm" />
@@ -621,7 +624,7 @@ function rematch() {
           <div class="flex items-center justify-between text-sm">
             <span class="text-white/50">Monster</span>
             <span class="font-bold" :style="{ color: playerMonster?.color }">
-              {{ playerMonster?.name }}
+              {{ playerMonster?.ev }}
             </span>
           </div>
           <div class="flex items-center justify-between text-sm">
@@ -794,7 +797,7 @@ function rematch() {
             >
               <ElementBadge :element="playerMonster!.element" size="sm" />
               <font-awesome-icon
-                :icon="['fas', 'plus']"
+                :icon="['fas', 'circle-plus']"
                 class="text-white/30 text-[9px]"
               />
               <ElementBadge :element="evolvedSecondaryElement" size="sm" />

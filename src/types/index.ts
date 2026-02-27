@@ -171,6 +171,9 @@ export type BattlePhase =
   | "playerTurn"
   | "enemyTurn"
   | "animating"
+  | "switchPrompt"
+  | "enemyFainted"
+  | "playerFainted"
   | "victory"
   | "defeat";
 
@@ -230,7 +233,7 @@ export interface DamageResult {
 }
 
 // ─── Game Mode ───────────────────────────────────────────────
-export type GameMode = "normal" | "gauntlet";
+export type GameMode = "normal" | "gauntlet" | "team";
 
 // ─── Difficulty ──────────────────────────────────────────────
 export type DifficultyTier = "easy" | "normal" | "hard" | "nightmare";

@@ -13,7 +13,7 @@ import blizzardfangSprite from "../assets/sprites/Glacifang-Evo.png";
 import purgatalonfangSprite from "../assets/sprites/Dusktalon-Evo.png";
 import nullveilSprite from "../assets/sprites/Umbraveil-Evo.png";
 import stormrionSprite from "../assets/sprites/Zephyrion-Evo.png";
-import venombloomSprite from "../assets/sprites/Toxicbloom-Evo.png";
+import venombloomSprite from "../assets/sprites/Thornbloom-Evo.png";
 import psychylvursaSprite from "../assets/sprites/Sylvursa-Evo.png";
 import auramindSprite from "../assets/sprites/Mentalis-Evo.png";
 import darkcebryxSprite from "../assets/sprites/Cerebryx-Evo.png";

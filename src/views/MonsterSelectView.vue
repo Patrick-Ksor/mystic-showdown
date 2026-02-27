@@ -279,6 +279,32 @@ onMounted(() => {
             >
               Gauntlet (4 Stages)
             </BaseButton>
+            <BaseButton
+              variant="secondary"
+              size="lg"
+              icon="users"
+              class="w-full"
+              :class="{
+                'opacity-40 cursor-not-allowed':
+                  !progressionStore.hasCompletedGauntlet,
+              }"
+              :title="
+                !progressionStore.hasCompletedGauntlet
+                  ? 'Complete a Gauntlet run to unlock'
+                  : 'Team Battle'
+              "
+              @click="
+                progressionStore.hasCompletedGauntlet &&
+                  router.push('/team-select')
+              "
+            >
+              Team Battle
+              <font-awesome-icon
+                v-if="!progressionStore.hasCompletedGauntlet"
+                :icon="['fas', 'lock']"
+                class="text-xs ml-1"
+              />
+            </BaseButton>
           </div>
         </template>
 

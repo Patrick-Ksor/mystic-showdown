@@ -4,6 +4,7 @@ import { MONSTERS } from "@/data/monsters";
 
 const STORAGE_KEY = "unlockedMonsters";
 const STARTER_IDS = ["voltigon", "aquaphant", "pyroclash"];
+const GAUNTLET_COMPLETE_KEY = "gauntletCompleted";
 
 function loadFromStorage(): string[] {
   try {
@@ -25,7 +26,9 @@ function saveToStorage(ids: string[]) {
 export const useProgressionStore = defineStore("progression", () => {
   // ─── State ───────────────────────────────────────────────
   const unlockedMonsters = ref<string[]>(loadFromStorage());
-
+  const hasCompletedGauntlet = ref<boolean>(
+    localStorage.getItem(GAUNTLET_COMPLETE_KEY) === "true",
+  );
   // ─── Getters ─────────────────────────────────────────────
   const lockedMonsters = computed(() =>
     MONSTERS.filter((m) => !unlockedMonsters.value.includes(m.id)).map(
@@ -54,12 +57,19 @@ export const useProgressionStore = defineStore("progression", () => {
     saveToStorage(unlockedMonsters.value);
   }
 
+  function markGauntletComplete() {
+    hasCompletedGauntlet.value = true;
+    localStorage.setItem(GAUNTLET_COMPLETE_KEY, "true");
+  }
+
   return {
     unlockedMonsters,
     lockedMonsters,
     isTournamentComplete,
+    hasCompletedGauntlet,
     isUnlocked,
     unlockMonster,
     resetProgress,
+    markGauntletComplete,
   };
 });

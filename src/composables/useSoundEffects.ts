@@ -4,6 +4,7 @@
  * No audio files needed.
  */
 import { ref } from "vue";
+import type { ElementType } from "@/types";
 import {
   adsr,
   chord,
@@ -1661,6 +1662,145 @@ function playStatUp() {
   void swellOsc2;
 }
 
+// ─── Monster Cries ───────────────────────────────────────────
+
+/** Deterministic float 0–1 derived from a monster's id string. */
+function idHash(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) {
+    h = (h * 31 + id.charCodeAt(i)) % 997;
+  }
+  return h / 996;
+}
+
+/**
+ * Unique synthesized cry played when a monster enters battle.
+ * Sound parameters are deterministically derived from the monster's stats and id.
+ */
+function playMonsterCry(monster: {
+  id: string;
+  element: ElementType;
+  speed: number;
+  attack: number;
+  defense: number;
+  baseHP: number;
+}) {
+  const ctx = getCtx();
+  const { id, element, speed, attack, defense, baseHP } = monster;
+  const hash = idHash(id);
+
+  // Base frequency from speed (faster monsters pitch higher) + per-id variance
+  const baseFreq = 80 + (speed / 130) * 320 + (hash * 40 - 20);
+
+  // Duration from baseHP (tankier monsters cry longer)
+  const duration = 0.8 + (baseHP / 120) * 0.9;
+
+  // Sweep direction: attack-heavy → rising; defense-heavy → falling; balanced → slight rise
+  const endFreq =
+    attack > defense
+      ? baseFreq * (1.4 + hash * 0.3)
+      : defense > attack
+        ? baseFreq * (0.55 + hash * 0.2)
+        : baseFreq * (0.9 + hash * 0.2);
+
+  // Oscillator type derived from element
+  const elementOscType = ((): OscillatorType => {
+    switch (element) {
+      case "fire":
+      case "metal":
+        return "sawtooth";
+      case "water":
+      case "ice":
+      case "light":
+        return "sine";
+      case "electric":
+        return "square";
+      case "wind":
+      case "psychic":
+        return "triangle";
+      default:
+        // shadow, void, toxic, earth, nature
+        return "sawtooth";
+    }
+  })();
+
+  const stopAt = ctx.currentTime + duration + 0.08;
+
+  // Main cry oscillator with frequency sweep
+  const gCry = out(ctx, 1);
+  adsr(
+    gCry.gain,
+    ctx,
+    {
+      attack: 0.02,
+      decay: duration * 0.2,
+      sustain: 0.6,
+      release: duration * 0.35,
+      peak: v(0.28),
+    },
+    duration,
+  );
+  const cryOsc = osc(
+    ctx,
+    { type: elementOscType, freq: baseFreq, stopOffset: stopAt },
+    gCry,
+  );
+  freqRamp(cryOsc, ctx, baseFreq, endFreq, duration * 0.8);
+
+  // Vibrato — rate and depth vary per monster id
+  lfo(ctx, cryOsc.frequency, 4 + hash * 6, 8 + hash * 18, {
+    stopOffset: stopAt,
+  });
+
+  // Dark elements: add a distorted under-tone
+  if (element === "shadow" || element === "void" || element === "toxic") {
+    const dist = makeDistortion(ctx, 120 + hash * 80);
+    dist.connect(ctx.destination);
+    const gDist = ctx.createGain();
+    gDist.gain.value = 0;
+    adsr(
+      gDist.gain,
+      ctx,
+      {
+        attack: 0.03,
+        decay: duration * 0.25,
+        sustain: 0.3,
+        release: duration * 0.4,
+        peak: v(0.1),
+      },
+      duration,
+    );
+    gDist.connect(dist);
+    osc(
+      ctx,
+      { type: "sawtooth", freq: baseFreq * 0.5, stopOffset: stopAt },
+      gDist,
+    );
+  }
+
+  // Electric: add a fizzy bandpass noise burst
+  if (element === "electric") {
+    const gNoise = out(ctx, 1);
+    adsr(
+      gNoise.gain,
+      ctx,
+      {
+        attack: 0.01,
+        decay: duration * 0.3,
+        sustain: 0,
+        release: 0,
+        peak: v(0.08),
+      },
+      duration * 0.4,
+    );
+    whiteNoise(ctx, duration * 0.4 + 0.05, gNoise, {
+      filterType: "bandpass",
+      filterFreq: 3000 + hash * 2000,
+      filterQ: 2,
+    });
+  }
+}
+
 // ─── Public API ─────────────────────────────────────────────
 
 export function useSoundEffects() {
@@ -1686,5 +1826,6 @@ export function useSoundEffects() {
     playSignatureIntro,
     playEvolution,
     playStatUp,
+    playMonsterCry,
   };
 }
