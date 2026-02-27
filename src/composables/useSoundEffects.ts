@@ -1569,31 +1569,96 @@ function toggleMute() {
   isMuted.value = !isMuted.value;
 }
 
-/** Stat boost — rising 3-note arpeggio (sine, ~0.5s) */
+/**
+ * Stat boost — soft "power welling up" feel:
+ *  A warm sine swell that rises in pitch + a pair of bell pings + high shimmer breath.
+ *  Subtle, magical, distinct from the arpeggio fanfares elsewhere.
+ */
 function playStatUp() {
   const ctx = getCtx();
   const now = ctx.currentTime;
-  const notes = [523, 659, 784]; // C5, E5, G5
-  notes.forEach((freq, i) => {
-    const g = out(ctx, 1);
-    adsr(
-      g.gain,
-      ctx,
-      { attack: 0.02, decay: 0.05, sustain: 0.6, release: 0.18, peak: v(0.14) },
-      0.15,
-      now + i * 0.12,
-    );
-    osc(
-      ctx,
-      {
-        type: "sine",
-        freq,
-        startOffset: now + i * 0.12,
-        stopOffset: now + i * 0.12 + 0.2,
-      },
-      g,
-    );
+
+  // Rising sine swell — starts low, glides upward smoothly
+  const gSwell = out(ctx, 1);
+  adsr(
+    gSwell.gain,
+    ctx,
+    { attack: 0.08, decay: 0.0, sustain: 1.0, release: 0.4, peak: v(0.06) },
+    0.45,
+    now,
+  );
+  const swellOsc = osc(
+    ctx,
+    { type: "sine", freq: 220, startOffset: now, stopOffset: now + 0.55 },
+    gSwell,
+  );
+  freqRamp(swellOsc, ctx, 220, 660, 0.45, now);
+
+  // Detuned second swell for warmth
+  const gSwell2 = out(ctx, 1);
+  adsr(
+    gSwell2.gain,
+    ctx,
+    { attack: 0.1, decay: 0.0, sustain: 1.0, release: 0.4, peak: v(0.035) },
+    0.45,
+    now,
+  );
+  const swellOsc2 = osc(
+    ctx,
+    { type: "sine", freq: 222, startOffset: now, stopOffset: now + 0.55 },
+    gSwell2,
+  );
+  freqRamp(swellOsc2, ctx, 222, 664, 0.45, now);
+
+  // Bell ping 1 — hits at the midpoint
+  const t1 = now + 0.18;
+  const gBell1 = out(ctx, 1);
+  adsr(
+    gBell1.gain,
+    ctx,
+    { attack: 0.003, decay: 0.18, sustain: 0.0, release: 0.0, peak: v(0.07) },
+    0.18,
+    t1,
+  );
+  osc(
+    ctx,
+    { type: "sine", freq: 1047, startOffset: t1, stopOffset: t1 + 0.28 },
+    gBell1,
+  );
+
+  // Bell ping 2 — slightly higher, a beat later
+  const t2 = now + 0.32;
+  const gBell2 = out(ctx, 1);
+  adsr(
+    gBell2.gain,
+    ctx,
+    { attack: 0.003, decay: 0.22, sustain: 0.0, release: 0.0, peak: v(0.055) },
+    0.22,
+    t2,
+  );
+  osc(
+    ctx,
+    { type: "sine", freq: 1319, startOffset: t2, stopOffset: t2 + 0.32 },
+    gBell2,
+  );
+
+  // Airy highpass noise breath — feels like energy gathering
+  const gBreath = out(ctx, 1);
+  adsr(
+    gBreath.gain,
+    ctx,
+    { attack: 0.12, decay: 0.1, sustain: 0.3, release: 0.35, peak: v(0.04) },
+    0.35,
+    now,
+  );
+  whiteNoise(ctx, 0.55, gBreath, {
+    filterType: "highpass",
+    filterFreq: 5500,
+    filterQ: 0.8,
   });
+
+  void swellOsc;
+  void swellOsc2;
 }
 
 // ─── Public API ─────────────────────────────────────────────

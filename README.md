@@ -39,3 +39,5 @@ A battle arena game featuring mythical creatures with elemental powers. Train yo
 | 22  | Luxfawn    | Light    | A celestial deer made of solidified moonlight. Its antlers glow with healing energy.                           |
 | 23  | Venomire   | Toxic    | A serpentine horror made of living acid. It dissolves terrain as it slithers.                                  |
 | 24  | Blightwing | Toxic    | A venomous moth that spreads plague clouds from its wings. Its dust is lethal.                                 |
+
+0

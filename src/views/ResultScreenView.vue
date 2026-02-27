@@ -67,6 +67,7 @@ const isLeaving = ref(false);
 const didEvolve = ref(false);
 const showEvolutionOverlay = ref(false);
 const evolutionSpriteRef = ref<HTMLImageElement | null>(null);
+const evolutionDisplaySprite = ref("");
 const evolvedName = ref("");
 const evolvedSecondaryElement = ref<ElementType | null>(null);
 const evolvedSecondaryColor = ref("#ffffff");
@@ -141,14 +142,19 @@ onMounted(async () => {
         evolvedSecondaryColor.value =
           ELEMENT_COLORS[def.evolution.secondaryElement];
         didEvolve.value = true;
-        sfx.playEvolution();
         showEvolutionOverlay.value = true;
+        evolutionDisplaySprite.value = playerMonster.value!.spriteUrl;
         await nextTick();
         if (evolutionSpriteRef.value) {
-          await animateEvolution(
+          const evoPromise = animateEvolution(
             evolutionSpriteRef.value,
             evolvedSecondaryColor.value
           );
+          // Swap sprite at flash peak so it's revealed as the flash fades
+          await delay(650);
+          evolutionDisplaySprite.value =
+            def.evolution.evolvedSpriteUrl ?? playerMonster.value!.spriteUrl;
+          await evoPromise;
         }
         await delay(800);
         showEvolutionOverlay.value = false;
@@ -283,6 +289,7 @@ const currentEquippedSpecials = computed(() => {
   if (!def) return [];
   const allSpecials = [def.specialMove, ...def.learnset.map((l) => l.move)];
   return equippedNames
+    .filter((name) => name !== def.specialMove.name) // starter is always locked in
     .map((name) => allSpecials.find((m) => m.name === name))
     .filter((m): m is Move => m !== undefined);
 });
@@ -368,8 +375,8 @@ function rematch() {
         >
           <img
             ref="evolutionSpriteRef"
-            :src="playerMonster?.spriteUrl"
-            :alt="playerMonster?.name"
+            :src="evolutionDisplaySprite"
+            :alt="evolvedName || playerMonster?.name"
             class="w-full h-full object-contain"
             :style="{
               filter: `drop-shadow(0 0 12px ${playerMonster?.color}66)`,

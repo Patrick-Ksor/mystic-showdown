@@ -510,7 +510,9 @@ export const useBattleStore = defineStore("battle", () => {
     const { multiplier, effectiveness } = getEffectivenessMultiplier(
       move.element,
       defender.element,
-      defender.evolution?.secondaryElement,
+      defender.level >= EVOLUTION_LEVEL
+        ? defender.evolution?.secondaryElement
+        : undefined,
     );
 
     // STAB: same element (or secondary element if evolved) = full damage; otherwise STAB_PENALTY
@@ -757,7 +759,9 @@ export const useBattleStore = defineStore("battle", () => {
               getEffectivenessMultiplier(
                 m.element,
                 playerMonster.value!.element,
-                playerMonster.value!.evolution?.secondaryElement,
+                playerMonster.value!.level >= EVOLUTION_LEVEL
+                  ? playerMonster.value!.evolution?.secondaryElement
+                  : undefined,
               ).effectiveness === "super",
           );
         selectedMove =

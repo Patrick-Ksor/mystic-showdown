@@ -90,6 +90,9 @@ function enterGauntlet() {
 
 function handleToggleEquip(moveName: string) {
   if (!selectedId.value) return;
+  // Starter special move is always locked in — cannot be unequipped
+  const def = MONSTERS.find((m) => m.id === selectedId.value);
+  if (def && moveName === def.specialMove.name) return;
   const current = monsterLevelStore.getEquippedMoveNames(selectedId.value);
   const next = current.includes(moveName)
     ? current.filter((n) => n !== moveName)

@@ -92,10 +92,14 @@ export const useMonsterLevelStore = defineStore("monsterLevel", () => {
    */
   function getEquippedMoveNames(monsterId: string): string[] {
     const progress = monsterLevels.value.find((m) => m.id === monsterId);
-    if (progress?.equippedMoveNames && progress.equippedMoveNames.length > 0) {
-      return progress.equippedMoveNames;
+    if (progress) {
+      // Record exists — trust the stored array even if empty (user unequipped everything)
+      if (progress.equippedMoveNames !== undefined) {
+        return progress.equippedMoveNames;
+      }
+      // Record exists but equippedMoveNames field was never set (legacy data) — use starter
     }
-    // Default: starter special move
+    // No record at all — first time this monster is seen, default to starter special
     const def = MONSTERS.find((m) => m.id === monsterId);
     return def ? [def.specialMove.name] : [];
   }

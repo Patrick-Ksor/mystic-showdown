@@ -1,6 +1,29 @@
 import type { EvolutionData } from "@/types";
 import voltastormSprite from "../assets/sprites/Voltigon-Evo.png";
 import sylphvexSprite from "../assets/sprites/Aerovex-Evo.png";
+import tidelancerSprite from "../assets/sprites/Stormfin-Evo.png";
+import cryophantSprite from "../assets/sprites/Aquaphant-Evo.png";
+import terraquillSprite from "../assets/sprites/Coralith-Evo.png";
+import pyrothunderSprite from "../assets/sprites/Pyroclasm-Evo.png";
+import igniscladSprite from "../assets/sprites/Cinderback-Evo.png";
+import oremancerSprite from "../assets/sprites/Quarrox-Evo.png";
+import rootquakeSprite from "../assets/sprites/Terravex-Evo.png";
+import abyssomawSprite from "../assets/sprites/Frostmaw-Evo.png";
+import blizzardfangSprite from "../assets/sprites/Glacifang-Evo.png";
+import purgatalonfangSprite from "../assets/sprites/Dusktalon-Evo.png";
+import nullveilSprite from "../assets/sprites/Umbraveil-Evo.png";
+import stormrionSprite from "../assets/sprites/Zephyrion-Evo.png";
+import venombloomSprite from "../assets/sprites/Toxicbloom-Evo.png";
+import psychylvursaSprite from "../assets/sprites/Sylvursa-Evo.png";
+import auramindSprite from "../assets/sprites/Mentalis-Evo.png";
+import darkcebryxSprite from "../assets/sprites/Cerebryx-Evo.png";
+import terraferroSprite from "../assets/sprites/Ferroclaw-Evo.png";
+import infernotoxSprite from "../assets/sprites/Titanox-Evo.png";
+import solarnovaSprite from "../assets/sprites/Solarius-Evo.png";
+import aurafawnSprite from "../assets/sprites/Luxfawn-Evo.png";
+import mirevenomSprite from "../assets/sprites/Venomire-Evo.png";
+import plagueWingSprite from "../assets/sprites/Blightwing-Evo.png";
+import singularixSprite from "../assets/sprites/Nihilux-Evo.png";
 
 /**
  * Evolution data keyed by monster ID.
@@ -28,6 +51,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   stormfin: {
     secondaryElement: "water",
     evolvedName: "Tidelancer",
+    evolvedSpriteUrl: tidelancerSprite,
     ultimateMove: {
       name: "Hurricane Tide",
       power: 136,
@@ -45,6 +69,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   aquaphant: {
     secondaryElement: "ice",
     evolvedName: "Cryophant",
+    evolvedSpriteUrl: cryophantSprite,
     ultimateMove: {
       name: "Glacial Tide",
       power: 138,
@@ -60,6 +85,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   coralith: {
     secondaryElement: "earth",
     evolvedName: "Terraquill",
+    evolvedSpriteUrl: terraquillSprite,
     ultimateMove: {
       name: "Tectonic Reef",
       power: 135,
@@ -74,16 +100,17 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
 
   // ─── Fire ────────────────────────────────────────────────
   pyroclash: {
-    secondaryElement: "earth",
-    evolvedName: "Pyroclasm",
+    secondaryElement: "electric",
+    evolvedName: "Pyrothunder",
+    evolvedSpriteUrl: pyrothunderSprite,
     ultimateMove: {
-      name: "Eruption Quake",
+      name: "Flaming Lightning Strike",
       power: 142,
-      element: "earth",
+      element: "electric",
       accuracy: 76,
       isSpecial: true,
       description:
-        "Triggers a cataclysmic volcanic eruption that splits the ground and engulfs the field in magma.",
+        "Unleashes a bolt of lightning superheated to plasma temperatures, incinerating everything in its path.",
       effect: { type: "burn", chance: 35 },
       isSignature: true,
     },
@@ -91,6 +118,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   cinderback: {
     secondaryElement: "metal",
     evolvedName: "Ignisclad",
+    evolvedSpriteUrl: igniscladSprite,
     ultimateMove: {
       name: "Scorched Rampart",
       power: 138,
@@ -108,6 +136,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   quarrox: {
     secondaryElement: "metal",
     evolvedName: "Oremancer",
+    evolvedSpriteUrl: oremancerSprite,
     ultimateMove: {
       name: "Mineral Annihilation",
       power: 140,
@@ -122,6 +151,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   terravex: {
     secondaryElement: "nature",
     evolvedName: "Rootquake",
+    evolvedSpriteUrl: rootquakeSprite,
     ultimateMove: {
       name: "Ancient Grove",
       power: 137,
@@ -139,6 +169,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   frostmaw: {
     secondaryElement: "water",
     evolvedName: "Abyssomaw",
+    evolvedSpriteUrl: abyssomawSprite,
     ultimateMove: {
       name: "Deep Freeze Torrent",
       power: 138,
@@ -154,6 +185,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   glacifang: {
     secondaryElement: "wind",
     evolvedName: "Blizzardfang",
+    evolvedSpriteUrl: blizzardfangSprite,
     ultimateMove: {
       name: "Polar Gale",
       power: 136,
@@ -169,16 +201,17 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
 
   // ─── Shadow ──────────────────────────────────────────────
   dusktalon: {
-    secondaryElement: "void",
-    evolvedName: "Nihiltalon",
+    secondaryElement: "light",
+    evolvedName: "Purgatalon",
+    evolvedSpriteUrl: purgatalonfangSprite,
     ultimateMove: {
-      name: "Eclipse Rupture",
+      name: "Eclipse Rapture",
       power: 145,
-      element: "void",
+      element: "light",
       accuracy: 76,
       isSpecial: true,
       description:
-        "Tears a rift in reality using the full weight of oblivion, plunging the target into endless dark.",
+        "Conjures a blinding celestial eclipse where shadow and light collide, ensnaring the target in a rapturous dream from which they cannot awaken.",
       effect: { type: "sleep", chance: 30 },
       isSignature: true,
     },
@@ -186,6 +219,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   umbraveil: {
     secondaryElement: "void",
     evolvedName: "Nullveil",
+    evolvedSpriteUrl: nullveilSprite,
     ultimateMove: {
       name: "Void Shroud",
       power: 148,
@@ -203,6 +237,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   zephyrion: {
     secondaryElement: "electric",
     evolvedName: "Stormrion",
+    evolvedSpriteUrl: stormrionSprite,
     ultimateMove: {
       name: "Storm Conductor",
       power: 140,
@@ -236,6 +271,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   thornbloom: {
     secondaryElement: "toxic",
     evolvedName: "Venombloom",
+    evolvedSpriteUrl: venombloomSprite,
     ultimateMove: {
       name: "Thorned Miasma",
       power: 138,
@@ -251,6 +287,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   sylvursa: {
     secondaryElement: "psychic",
     evolvedName: "Psychylvursa",
+    evolvedSpriteUrl: psychylvursaSprite,
     ultimateMove: {
       name: "Forest Mind",
       power: 137,
@@ -268,6 +305,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   mentalis: {
     secondaryElement: "light",
     evolvedName: "Auramind",
+    evolvedSpriteUrl: auramindSprite,
     ultimateMove: {
       name: "Radiant Cognition",
       power: 140,
@@ -283,6 +321,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   cerebryx: {
     secondaryElement: "shadow",
     evolvedName: "Darkcebryx",
+    evolvedSpriteUrl: darkcebryxSprite,
     ultimateMove: {
       name: "Umbral Mindwipe",
       power: 142,
@@ -300,6 +339,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   ferroclaw: {
     secondaryElement: "earth",
     evolvedName: "Terraferro",
+    evolvedSpriteUrl: terraferroSprite,
     ultimateMove: {
       name: "Tectonic Rend",
       power: 138,
@@ -314,6 +354,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   titanox: {
     secondaryElement: "fire",
     evolvedName: "Infernotox",
+    evolvedSpriteUrl: infernotoxSprite,
     ultimateMove: {
       name: "Forge Nova",
       power: 142,
@@ -331,6 +372,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   solarius: {
     secondaryElement: "fire",
     evolvedName: "Solarnova",
+    evolvedSpriteUrl: solarnovaSprite,
     ultimateMove: {
       name: "Solar Coronation",
       power: 145,
@@ -346,6 +388,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   luxfawn: {
     secondaryElement: "nature",
     evolvedName: "Aurafawn",
+    evolvedSpriteUrl: aurafawnSprite,
     ultimateMove: {
       name: "Dawn Overgrowth",
       power: 136,
@@ -363,6 +406,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   venomire: {
     secondaryElement: "water",
     evolvedName: "Mirevenom",
+    evolvedSpriteUrl: mirevenomSprite,
     ultimateMove: {
       name: "Toxic Deluge",
       power: 138,
@@ -378,6 +422,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   blightwing: {
     secondaryElement: "wind",
     evolvedName: "Plaguewing",
+    evolvedSpriteUrl: plagueWingSprite,
     ultimateMove: {
       name: "Pestilent Gale",
       power: 136,
@@ -395,6 +440,7 @@ export const EVOLUTION_DATA: Record<string, EvolutionData> = {
   nihilux: {
     secondaryElement: "shadow",
     evolvedName: "Singularix",
+    evolvedSpriteUrl: singularixSprite,
     ultimateMove: {
       name: "Singularity",
       power: 150,

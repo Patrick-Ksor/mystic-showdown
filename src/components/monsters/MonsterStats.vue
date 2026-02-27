@@ -72,11 +72,8 @@ const xpPercent = computed(() => {
   return Math.min((props.xp / props.xpToNext) * 100, 100);
 });
 
-// Effective equipped names: use prop if provided, otherwise default to starter
-const effectiveEquipped = computed(() => {
-  if (props.equippedMoveNames.length > 0) return props.equippedMoveNames;
-  return [props.monster.specialMove.name];
-});
+// Effective equipped names: source of truth is always the passed prop (store handles the starter default)
+const effectiveEquipped = computed(() => props.equippedMoveNames);
 
 const isAtMaxEquipped = computed(
   () => effectiveEquipped.value.length >= MAX_EQUIPPED_SPECIALS
@@ -89,6 +86,7 @@ interface SpecialMoveEntry {
   isUnlocked: boolean;
   isEquipped: boolean;
   isTutor?: boolean;
+  isStarter?: boolean; // starter special — always locked in, cannot be unequipped
 }
 
 const specialMoves = computed<SpecialMoveEntry[]>(() => {
@@ -100,6 +98,7 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
       isEquipped: effectiveEquipped.value.includes(
         props.monster.specialMove.name
       ),
+      isStarter: true,
     },
   ];
   for (const entry of props.monster.learnset) {
@@ -338,12 +337,15 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
               : isAtMaxEquipped
               ? 'bg-white/[0.02] border-white/5 opacity-40 cursor-not-allowed'
               : 'bg-white/[0.03] border-white/5 opacity-70',
-            entry.isUnlocked && (!isAtMaxEquipped || entry.isEquipped)
+            entry.isUnlocked &&
+            !entry.isStarter &&
+            (!isAtMaxEquipped || entry.isEquipped)
               ? 'cursor-pointer hover:bg-white/10'
               : '',
           ]"
           @click="
             entry.isUnlocked &&
+              !entry.isStarter &&
               (entry.isEquipped || !isAtMaxEquipped) &&
               emit('toggle-equip', entry.move.name)
           "
@@ -369,7 +371,14 @@ const specialMoves = computed<SpecialMoveEntry[]>(() => {
                 TUTOR
               </span>
               <span
-                v-if="entry.isEquipped"
+                v-if="entry.isStarter"
+                class="text-[9px] px-1.5 py-0.5 rounded-full bg-white/10 border border-white/20 text-white/50 font-bold flex items-center gap-1"
+              >
+                <font-awesome-icon :icon="['fas', 'lock']" class="text-[8px]" />
+                CORE
+              </span>
+              <span
+                v-else-if="entry.isEquipped"
                 class="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300 font-bold"
               >
                 EQUIPPED

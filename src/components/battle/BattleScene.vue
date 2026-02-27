@@ -4,7 +4,7 @@ import { storeToRefs } from "pinia";
 import { useRouter } from "vue-router";
 import gsap from "gsap";
 import { useBattleStore } from "@/stores/useBattleStore";
-import type { ActionType } from "@/types";
+import type { ActionType, DamageResult } from "@/types";
 import { ELEMENT_COLORS, EVOLUTION_LEVEL } from "@/types";
 import {
   animateAttack,
