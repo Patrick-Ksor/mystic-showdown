@@ -1,4 +1,4 @@
-import{d as u}from"./ElementBadge.vue_vue_type_script_setup_true_lang-Dyu_exWq.js";function x(){function f(h,p=60){const a=["#ff4d00","#00bfff","#ffe44d","#00ff88","#a855f7","#ff2244","#7fdbff","#c48a2a"],r=[],e=h.getBoundingClientRect();for(let t=0;t<p;t++){const o=document.createElement("div"),n=6+Math.random()*8,s=a[Math.floor(Math.random()*a.length)],d=Math.random()>.5;o.style.cssText=`
+import{d as u}from"./ElementBadge.vue_vue_type_script_setup_true_lang-BBt6g4gP.js";function x(){function f(h,p=60){const a=["#ff4d00","#00bfff","#ffe44d","#00ff88","#a855f7","#ff2244","#7fdbff","#c48a2a"],r=[],e=h.getBoundingClientRect();for(let t=0;t<p;t++){const o=document.createElement("div"),n=6+Math.random()*8,s=a[Math.floor(Math.random()*a.length)],d=Math.random()>.5;o.style.cssText=`
         position: fixed;
         width: ${n}px;
         height: ${d?n:n*2}px;
