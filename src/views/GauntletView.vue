@@ -8,7 +8,6 @@ import { useGauntletStore } from "@/stores/useGauntletStore";
 import BattleScene from "@/components/battle/BattleScene.vue";
 import GauntletRoundBanner from "@/components/battle/GauntletRoundBanner.vue";
 import PerkPickerOverlay from "@/components/battle/PerkPickerOverlay.vue";
-import { ELEMENT_COLORS } from "@/types";
 import type { RunPerkId } from "@/types";
 import arenaImg from "@/assets/sprites/Arena.png";
 

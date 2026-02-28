@@ -145,14 +145,15 @@ async function animatePlayerAttack(
     );
   }
 
-  // Play attack launch + element accent on enemy (skip for buff/utility moves)
-  if (enemyEl && move.power > 0) {
+  // Execute action first so we can skip the animation on a miss
+  const result = await battleStore.executePlayerAction(action);
+
+  // Play attack launch + element accent on enemy (skip for buff/utility/miss)
+  if (enemyEl && move.power > 0 && !result?.missed) {
     sfx.playAttackLaunch();
     sfx.playElementAccent(move.element, move.secondaryElement);
     await animateAttack(move.element, enemyEl);
   }
-
-  const result = await battleStore.executePlayerAction(action);
 
   // Damage or miss feedback
   if (result && result.damage > 0 && enemyEl) {
@@ -341,7 +342,7 @@ async function executeEnemyTurn() {
         sceneRef.value
       );
     }
-    if (!result.isBuff && !result.isGuard) {
+    if (!result.isBuff && !result.isGuard && !result.missed) {
       sfx.playAttackLaunch();
       sfx.playElementAccent(enemyMonster.value.element);
       await animateAttack(enemyMonster.value.element, playerEl);
@@ -445,7 +446,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- Enemy sprite — upper-right -->
-      <div class="absolute bottom-[-4%] right-[15%] z-10">
+      <div class="absolute top-[4%] right-[15%] z-10">
         <MonsterSprite
           v-if="enemyMonster"
           ref="enemySpriteRef"
@@ -455,7 +456,7 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- Player sprite — lower-left -->
-      <div class="absolute bottom-[-10%] left-[15%] z-10">
+      <div class="absolute bottom-[4%] left-[15%] z-10">
         <MonsterSprite
           v-if="playerMonster"
           ref="playerSpriteRef"

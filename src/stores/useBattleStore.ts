@@ -500,6 +500,7 @@ export const useBattleStore = defineStore("battle", () => {
           (attacker.level >= EVOLUTION_LEVEL &&
             move.element === attacker.evolution?.secondaryElement),
         isSignature: move.isSignature ?? false,
+        missed: true,
       };
       addLog(result.message, "miss");
       lastDamageResult.value = { ...result, target };

@@ -29,7 +29,7 @@ export const SUPER_EFFECTIVE: Record<ElementType, ElementType[]> = {
   metal: ["ice", "light", "nature"],
   light: ["shadow", "fire"],
   toxic: ["water", "psychic", "metal"],
-  void: ["shadow", "psychic", "light"],
+  void: ["shadow", "psychic", "light", "void"],
 };
 
 // ─── Resistance Chart (many-to-many) ─────────────────────────
@@ -80,8 +80,6 @@ function singleTypeMultiplier(
   moveElement: ElementType,
   defType: ElementType,
 ): number {
-  // Universal same-type resistance
-  if (moveElement === defType) return 0.5;
   if (SUPER_EFFECTIVE[moveElement]?.includes(defType)) return 2.0;
   if (NOT_EFFECTIVE[moveElement]?.includes(defType)) return 0.5;
   return 1.0;

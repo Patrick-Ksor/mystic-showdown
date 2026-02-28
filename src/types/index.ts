@@ -230,6 +230,8 @@ export interface DamageResult {
   isBuff?: boolean;
   /** True when the enemy chose to guard instead of attack */
   isGuard?: boolean;
+  /** True when the move was rolled as a miss (damage will be 0) */
+  missed?: boolean;
 }
 
 // ─── Game Mode ───────────────────────────────────────────────

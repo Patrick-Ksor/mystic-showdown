@@ -143,16 +143,16 @@ async function animatePlayerAttack(
     );
   }
 
-  if (enemyEl && move.power > 0) {
+  // Execute the action first so we can skip the animation on a miss
+  // Store may set phase to "enemyFainted" or "victory" but will NOT change
+  // activeEnemyIndex yet, so enemySpriteRef still shows the correct monster.
+  const result = await store.executePlayerAction(action);
+
+  if (enemyEl && move.power > 0 && !result?.missed) {
     sfx.playAttackLaunch();
     sfx.playElementAccent(move.element, move.secondaryElement);
     await animateAttack(move.element, enemyEl);
   }
-
-  // Execute the action — store may set phase to "enemyFainted" or "victory"
-  // but will NOT change activeEnemyIndex yet, so enemySpriteRef still shows
-  // the correct (fainted) monster.
-  const result = await store.executePlayerAction(action);
 
   if (result && result.damage > 0 && enemyEl) {
     const enemyMaxHP = activeEnemy.value?.maxHP ?? 1;
@@ -393,7 +393,7 @@ async function executeEnemyTurn() {
         sceneRef.value
       );
     }
-    if (!result.isBuff && !result.isGuard) {
+    if (!result.isBuff && !result.isGuard && !result.missed) {
       sfx.playAttackLaunch();
       sfx.playElementAccent(activeEnemy.value?.element ?? "fire");
       await animateAttack(activeEnemy.value?.element ?? "fire", playerEl);
