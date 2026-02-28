@@ -155,7 +155,6 @@ onMounted(() => {
     :class="[
       'health-bar-container rounded-lg border border-white/10 p-3',
       'bg-black/40 backdrop-blur-sm',
-      props.side === 'player' ? 'mr-auto' : 'ml-auto',
     ]"
     style="min-width: 220px; max-width: 280px"
   >

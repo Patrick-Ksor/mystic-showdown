@@ -57,10 +57,7 @@ defineExpose({
   <div
     ref="spriteRef"
     :class="[
-      'monster-sprite relative flex items-center justify-center',
-      props.side === 'player'
-        ? 'w-64 h-64 sm:w-80 sm:h-80'
-        : 'w-56 h-56 sm:w-72 sm:h-72',
+      'monster-sprite relative flex items-center justify-center w-64 h-64 sm:w-80 sm:h-80',
     ]"
   >
     <img

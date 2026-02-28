@@ -10,7 +10,6 @@ function rnd(min: number, max: number) {
 function makeParticle(parent: HTMLElement, css: string): HTMLDivElement {
   const p = document.createElement("div");
   p.style.cssText = css;
-  parent.style.position = "relative";
   parent.appendChild(p);
   return p;
 }
@@ -1192,7 +1191,6 @@ export async function animateFaint(
           top:50%; left:50%; pointer-events:none; z-index:50;
           filter:blur(1px);
         `;
-        parent.style.position = "relative";
         parent.appendChild(p);
         const angle = (i / 8) * Math.PI * 2;
         const dist = 50 + Math.random() * 60;

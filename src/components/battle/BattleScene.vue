@@ -394,14 +394,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div ref="sceneRef" class="battle-scene relative w-full h-full flex flex-col">
-    <!-- Arena ambient particles (z-0, behind everything) -->
-    <div
-      ref="particlesContainerRef"
-      class="absolute inset-0 pointer-events-none overflow-hidden"
-      style="z-index: 0"
-    />
-
-    <!-- Top Banner (BATTLE START / VICTORY / DEFEATED) -->
+    <!-- Full-scene banner overlay -->
     <div
       v-if="showBanner"
       class="absolute inset-0 z-40 flex items-center justify-center pointer-events-none"
@@ -417,11 +410,17 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Enemy Section -->
-    <div
-      class="flex-1 flex flex-col sm:flex-row items-center justify-center gap-4 px-4 pt-4 sm:pt-8"
-    >
-      <div class="order-2 sm:order-1">
+    <!-- ═══ Battle Field (60%) ═══ -->
+    <div class="relative flex-[0_0_60%] overflow-hidden">
+      <!-- Arena ambient particles -->
+      <div
+        ref="particlesContainerRef"
+        class="absolute inset-0 pointer-events-none overflow-hidden"
+        style="z-index: 0"
+      />
+
+      <!-- Enemy HUD — top-right -->
+      <div class="absolute top-4 right-4 z-10 w-64">
         <HealthBar
           v-if="enemyMonster"
           :current-h-p="enemyMonster.currentHP"
@@ -444,7 +443,9 @@ onBeforeUnmount(() => {
           side="enemy"
         />
       </div>
-      <div class="order-1 sm:order-2 relative">
+
+      <!-- Enemy sprite — upper-right -->
+      <div class="absolute bottom-[-4%] right-[15%] z-10">
         <MonsterSprite
           v-if="enemyMonster"
           ref="enemySpriteRef"
@@ -452,18 +453,9 @@ onBeforeUnmount(() => {
           side="enemy"
         />
       </div>
-    </div>
 
-    <!-- Divider -->
-    <div
-      class="h-px bg-linear-to-r from-transparent via-white/10 to-transparent mx-4"
-    />
-
-    <!-- Player Section -->
-    <div
-      class="flex-1 flex flex-col sm:flex-row items-center justify-center gap-4 px-4 pb-2"
-    >
-      <div class="relative">
+      <!-- Player sprite — lower-left -->
+      <div class="absolute bottom-[-10%] left-[15%] z-10">
         <MonsterSprite
           v-if="playerMonster"
           ref="playerSpriteRef"
@@ -471,7 +463,9 @@ onBeforeUnmount(() => {
           side="player"
         />
       </div>
-      <div>
+
+      <!-- Player HUD — bottom-left -->
+      <div class="absolute bottom-4 left-4 z-10 w-64">
         <HealthBar
           v-if="playerMonster"
           :current-h-p="playerMonster.currentHP"
@@ -496,9 +490,8 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Bottom Section: Battle Log + Action Menu -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 px-4 pb-4 shrink-0">
-      <BattleLog :entries="battleLog" />
+    <!-- ═══ Action UI (remaining 40%) ═══ -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 px-4 py-3 flex-1 min-h-0">
       <ActionMenu
         v-if="playerMonster"
         :monster="playerMonster"
@@ -506,6 +499,7 @@ onBeforeUnmount(() => {
         :disable-run="props.disableRun"
         @action="handlePlayerAction"
       />
+      <BattleLog :entries="battleLog" />
     </div>
   </div>
 </template>
