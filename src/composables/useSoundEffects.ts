@@ -1736,7 +1736,7 @@ function playMonsterCry(monster: {
       decay: duration * 0.2,
       sustain: 0.6,
       release: duration * 0.35,
-      peak: v(0.28),
+      peak: v(0.1),
     },
     duration,
   );
@@ -1766,7 +1766,7 @@ function playMonsterCry(monster: {
         decay: duration * 0.25,
         sustain: 0.3,
         release: duration * 0.4,
-        peak: v(0.1),
+        peak: v(0.04),
       },
       duration,
     );
@@ -1789,7 +1789,7 @@ function playMonsterCry(monster: {
         decay: duration * 0.3,
         sustain: 0,
         release: 0,
-        peak: v(0.08),
+        peak: v(0.03),
       },
       duration * 0.4,
     );
