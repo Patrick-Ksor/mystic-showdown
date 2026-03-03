@@ -268,6 +268,7 @@ async function handlePlayerAction(action: ActionType) {
     sfx.playRun();
     await battleStore.executePlayerAction(action);
     if (phase.value === "select") {
+      stopBattleMusic();
       router.push("/");
       isProcessing.value = false;
       return;
